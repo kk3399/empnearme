@@ -186,27 +186,43 @@ func (lcaRepo LcaRepo) loadYear(year int) error {
 			i = i + 1
 			lca.Case_status = strings.TrimSpace(line[i])
 			i = i + 1
-			lca.Submit_date, err = time.Parse(dateLayout, strings.TrimSpace(line[i]))
-			if err != nil {
-				panic(err)
-			}
-			i = i + 1
-			lca.Decision_date, err = time.Parse(dateLayout, strings.TrimSpace(line[i]))
-			if err != nil {
-				panic(err)
-			}
 
-			i = i + 1
-			lca.Start_date, err = time.Parse(dateLayout, strings.TrimSpace(line[i]))
-			if err != nil {
-				panic(err)
+			dt := strings.TrimSpace(line[i])
+			if len(dt) > 0 {
+				lca.Submit_date, err = time.Parse(dateLayout, dt)
+				if err != nil {
+					panic(err)
+				}
 			}
 			i = i + 1
-			lca.End_date, err = time.Parse(dateLayout, strings.TrimSpace(line[i]))
-			if err != nil {
-				panic(err)
+
+			dt = strings.TrimSpace(line[i])
+			if len(dt) > 0 {
+				lca.Decision_date, err = time.Parse(dateLayout, dt)
+				if err != nil {
+					panic(err)
+				}
 			}
 			i = i + 1
+
+			dt = strings.TrimSpace(line[i])
+			if len(dt) > 0 {
+				lca.Start_date, err = time.Parse(dateLayout, dt)
+				if err != nil {
+					panic(err)
+				}
+			}
+			i = i + 1
+
+			dt = strings.TrimSpace(line[i])
+			if len(dt) > 0 {
+				lca.End_date, err = time.Parse(dateLayout, dt)
+				if err != nil {
+					panic(err)
+				}
+			}
+			i = i + 1
+
 			lca.Employer_name = strings.TrimSpace(line[i])
 			i = i + 1
 			lca.Employer_address = strings.TrimSpace(line[i])
