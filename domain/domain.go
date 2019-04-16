@@ -42,7 +42,7 @@ type Lca struct {
 //LcaRepo handles read/write to database
 type LcaRepo interface {
 	Get(filter Filter) ([]Lca, error)
-	Load(year int) error
+	Load()
 }
 
 //Filter for search
