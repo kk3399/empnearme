@@ -46,8 +46,8 @@ func (lcaHandler LcaHandler) ServeHTTP(res http.ResponseWriter, req *http.Reques
 	zip := p.Get("z")
 	radius, _ := strconv.Atoi(p.Get("r"))
 	emp := p.Get("e")
-	payFrom := p.Get("pf")
-	payTo := p.Get("pt")
+	payFrom, _ := strconv.Atoi(p.Get("pf"))
+	payTo, _ := strconv.Atoi(p.Get("pt"))
 
 	filter := domain.Filter{Radius: radius, Zipcode: zip, Employer: emp, PayFrom: payFrom, PayTo: payTo}
 
