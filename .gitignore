@@ -12,3 +12,6 @@
 *.out
 
 data/
+
+desktop.ini
+.vscode/
