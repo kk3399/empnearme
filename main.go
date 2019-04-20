@@ -12,8 +12,6 @@ func main() {
 	repo := buntdb.Init(logger)
 	defer repo.Close()
 
-	repo.Load()
-
 	lcaHandler := http.LcaHandler{LcaRepo: repo, Log: logger}
 	httpHandler := http.Handler{LcaHandler: lcaHandler}
 	logger.Write(http.Serve(httpHandler))

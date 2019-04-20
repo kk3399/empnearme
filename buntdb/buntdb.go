@@ -31,9 +31,11 @@ type geoCoord struct {
 
 var zipcodeMap map[string]geoCoord
 
+const dbFileName = "data.db"
 const zipcodemapFileName = "zipcodemap.csv"
 const indexNearBy = "nearby"
 const indexPay = "pay"
+const indexEmployerName = "employer"
 const lcaKeyPrefix = "lca"
 const lcaPositionKeySuffix = "pos"
 const lcaJSONKeySuffix = "json"
@@ -41,10 +43,26 @@ const lcaJSONKeySuffix = "json"
 //Init database
 func Init(log log.Writer) LcaRepo {
 
-	//db, err := buntdb.Open("data.db")
-	db, err := buntdb.Open(":memory:")
+	doesDBexist := true
+	if _, err := os.Stat(dbFileName); os.IsNotExist(err) {
+		doesDBexist = false
+	}
+
+	db, err := buntdb.Open(dbFileName)
+	//db, err := buntdb.Open(":memory:")
 	if err != nil {
 		log.Write(err)
+	}
+
+	var config buntdb.Config
+	if err := db.ReadConfig(&config); err != nil {
+		log.Fatal(err.Error())
+	}
+
+	config.AutoShrinkDisabled = true
+
+	if err := db.SetConfig(config); err != nil {
+		log.Fatal(err.Error())
 	}
 
 	err = db.CreateSpatialIndex(indexNearBy, fmt.Sprintf("%s:%s:%s", lcaKeyPrefix, "*", lcaPositionKeySuffix), buntdb.IndexRect)
@@ -52,13 +70,22 @@ func Init(log log.Writer) LcaRepo {
 		log.Write(err)
 	}
 
-	err = db.CreateIndex(indexPay, fmt.Sprintf("%s:%s:%s", lcaKeyPrefix, "*", lcaJSONKeySuffix), buntdb.IndexJSON("wage_rate"))
+	/* err = db.CreateIndex(indexPay, fmt.Sprintf("%s:%s:%s", lcaKeyPrefix, "*", lcaJSONKeySuffix), buntdb.IndexJSON("Pay"))
 	if err != nil {
 		log.Write(err)
 	}
 
-	//defer db.Close()
-	return LcaRepo{db: db, log: log}
+	err = db.CreateIndex(indexEmployerName, fmt.Sprintf("%s:%s:%s", lcaKeyPrefix, "*", lcaJSONKeySuffix), buntdb.IndexJSON("Employer_name_lower"))
+	if err != nil {
+		log.Write(err)
+	} */
+
+	lcaRepo := LcaRepo{db: db, log: log}
+	if !doesDBexist {
+		lcaRepo.load()
+	}
+
+	return lcaRepo
 }
 
 //Close database connection
@@ -67,58 +94,168 @@ func (lcaRepo LcaRepo) Close() {
 }
 
 //Load loads all lca from flat files
-func (lcaRepo LcaRepo) Load() {
-	year := 2019
+func (lcaRepo LcaRepo) load() {
+	year := 2010
 	for ; year < 2020; year++ {
 		lcaRepo.loadYear(year)
 	}
 }
 
 //Get lcas
-func (lcaRepo LcaRepo) Get(locationFilter domain.Filter) ([]domain.Lca, error) {
+func (lcaRepo LcaRepo) Get(searchCriteria domain.SearchCriteria) ([]domain.Lca, error) {
 
-	var lcas []domain.Lca
+	var filterEmployer, filterPay, filterH1Date bool
+	if len(searchCriteria.Employer) > 0 {
+		filterEmployer = true
+	}
 
-	if locationFilter.Radius > 0 && len(locationFilter.Zipcode) > 0 {
-		geoCoord, err := getGeoCoordFromZip(locationFilter.Zipcode)
+	if searchCriteria.MinimumPay > 0 {
+		filterPay = true
+	}
+
+	if !searchCriteria.H1FiledAfter.IsZero() {
+		filterH1Date = true
+	}
+
+	if len(searchCriteria.Zipcode) > 0 {
+		if searchCriteria.Radius < 5 {
+			searchCriteria.Radius = 5
+		}
+		geoCoord, err := getGeoCoordFromZip(searchCriteria.Zipcode)
+		if err != nil {
+			return nil, err
+		}
+		lcas, err := lcaRepo.nearBy(geoCoord, searchCriteria.Radius)
 		if err != nil {
 			return nil, err
 		}
 
-		locationString := getLocationString(geoCoord)
-		err = lcaRepo.db.View(func(tx *buntdb.Tx) error {
-			err := tx.Nearby(indexNearBy, locationString, func(key, value string, distance float64) bool {
-				thisGeoCoord, err := getGeoCoord(value)
-				if err == nil {
-					miles := getDistance(geoCoord.lat, geoCoord.long, thisGeoCoord.lat, thisGeoCoord.long)
-					radius := float64(locationFilter.Radius)
-					if miles <= radius {
-						//get the lca vin from key
-						jsonKey := getJSONKeyFromPositionKey(key)
-						//get the lca json
-						value, err = tx.Get(jsonKey, false)
-						if err == nil {
-							var lca domain.Lca
-							err := json.Unmarshal([]byte(value), &lca)
-							if err == nil {
-								lcas = append(lcas, lca)
-							} else {
-								lcaRepo.log.Write(err)
-							}
-						} else {
-							lcaRepo.log.Write(err)
-						}
+		for i, lca := range lcas {
+			if (filterEmployer && !lca.EmployerNamed(searchCriteria.Employer)) ||
+				(filterPay && !lca.PayMoreThan(searchCriteria.MinimumPay)) ||
+				(filterH1Date && !lca.H1FiledAfter(searchCriteria.H1FiledAfter)) {
+				lcas[i] = domain.Lca{}
+			}
+		}
+		return filter(lcas), nil
+	}
 
-						return true
+	if filterEmployer {
+		lcas, err := lcaRepo.ofEmployer(searchCriteria.Employer)
+		if err != nil {
+			return nil, err
+		}
+		for i, lca := range lcas {
+			if (filterPay && !lca.PayMoreThan(searchCriteria.MinimumPay)) ||
+				(filterH1Date && !lca.H1FiledAfter(searchCriteria.H1FiledAfter)) {
+				lcas[i] = domain.Lca{}
+			}
+		}
+		return filter(lcas), nil
+	}
+
+	if filterPay {
+		panic("not implemented yet")
+	}
+
+	if filterH1Date {
+		panic("not implemented yet")
+	}
+
+	return nil, nil
+}
+
+func filter(lcas []domain.Lca) []domain.Lca {
+	if len(lcas) > 0 {
+		filteredLcas := make([]domain.Lca, 0)
+		for _, lca := range lcas {
+			if lca.Year > 0 {
+				filteredLcas = append(filteredLcas, lca)
+			}
+		}
+		return filteredLcas
+	}
+	return nil
+}
+
+func remove(lcas []domain.Lca, i int) []domain.Lca {
+	lcas[len(lcas)-1], lcas[i] = lcas[i], lcas[len(lcas)-1]
+	return lcas[:len(lcas)-1]
+}
+
+func (lcaRepo LcaRepo) ofEmployer(employerName string) ([]domain.Lca, error) {
+	var lcas []domain.Lca
+	err := lcaRepo.db.View(func(tx *buntdb.Tx) error {
+		tx.Ascend(indexEmployerName, func(key, value string) bool {
+			fmt.Printf("%s: %s\n", key, value)
+			if strings.Contains(value, employerName) {
+				//get the lca json
+				value, err := tx.Get(key, true)
+				if err == nil {
+					var lca domain.Lca
+					err := json.Unmarshal([]byte(value), &lca)
+					if err == nil {
+						lcas = append(lcas, lca)
+					} else {
+						lcaRepo.log.Write(err)
 					}
 				} else {
 					lcaRepo.log.Write(err)
 				}
-				return false
-			})
-			return err
+			}
+			return false
 		})
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
+
+	return lcas, nil
+}
+
+func (lcaRepo LcaRepo) nearBy(geoCoord geoCoord, radius int) ([]domain.Lca, error) {
+	lcas := make([]domain.Lca, 30)
+
+	locationString := getLocationString(geoCoord)
+	err := lcaRepo.db.View(func(tx *buntdb.Tx) error {
+		err := tx.Nearby(indexNearBy, locationString, func(key, value string, distance float64) bool {
+			thisGeoCoord, err := getGeoCoord(value)
+			if err == nil {
+				miles := getDistance(geoCoord.lat, geoCoord.long, thisGeoCoord.lat, thisGeoCoord.long)
+				radius := float64(radius)
+				if miles <= radius {
+					//get the json key from position key
+					jsonKey := getJSONKeyFromPositionKey(key)
+					//get the lca json
+					value, err = tx.Get(jsonKey, true)
+					if err == nil {
+						var lca domain.Lca
+						err := json.Unmarshal([]byte(value), &lca)
+						if err == nil {
+							lcas = append(lcas, lca)
+						} else {
+							lcaRepo.log.Write(err)
+						}
+					} else {
+						lcaRepo.log.Write(err)
+					}
+
+					return true
+				}
+			} else {
+				lcaRepo.log.Write(err)
+			}
+			return false
+		})
+		return err
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
 	return lcas, nil
 }
 
@@ -154,6 +291,8 @@ func (lcaRepo LcaRepo) add(lca domain.Lca) error {
 }
 
 func (lcaRepo LcaRepo) loadYear(year int) error {
+
+	fmt.Println("start: ", year, time.Now().Format(time.Kitchen))
 	fileName := "data/" + strconv.Itoa(year) + ".csv"
 	/*
 		1-year	2-case_number	3-case_status	4-submit_date	5-decision_date	6-start_date	7-end_date	8-employer_name	9-employer_address
@@ -173,6 +312,7 @@ func (lcaRepo LcaRepo) loadYear(year int) error {
 		panic(err)
 	}
 	dateLayout := "1/2/2006"
+	dateAlternateLayout := "2/1/2006"
 
 	// Loop through lines & turn into object
 	for _, line := range lines {
@@ -191,7 +331,10 @@ func (lcaRepo LcaRepo) loadYear(year int) error {
 			if len(dt) > 0 {
 				lca.Submit_date, err = time.Parse(dateLayout, dt)
 				if err != nil {
-					panic(err)
+					lca.Submit_date, err = time.Parse(dateAlternateLayout, dt)
+					if err != nil {
+						lcaRepo.log.Write(err)
+					}
 				}
 			}
 			i = i + 1
@@ -200,7 +343,10 @@ func (lcaRepo LcaRepo) loadYear(year int) error {
 			if len(dt) > 0 {
 				lca.Decision_date, err = time.Parse(dateLayout, dt)
 				if err != nil {
-					panic(err)
+					lca.Decision_date, err = time.Parse(dateAlternateLayout, dt)
+					if err != nil {
+						lcaRepo.log.Write(err)
+					}
 				}
 			}
 			i = i + 1
@@ -209,7 +355,10 @@ func (lcaRepo LcaRepo) loadYear(year int) error {
 			if len(dt) > 0 {
 				lca.Start_date, err = time.Parse(dateLayout, dt)
 				if err != nil {
-					panic(err)
+					lca.Start_date, err = time.Parse(dateAlternateLayout, dt)
+					if err != nil {
+						lcaRepo.log.Write(err)
+					}
 				}
 			}
 			i = i + 1
@@ -218,12 +367,17 @@ func (lcaRepo LcaRepo) loadYear(year int) error {
 			if len(dt) > 0 {
 				lca.End_date, err = time.Parse(dateLayout, dt)
 				if err != nil {
-					panic(err)
+					lca.End_date, err = time.Parse(dateAlternateLayout, dt)
+					if err != nil {
+						lcaRepo.log.Write(err)
+					}
 				}
 			}
+
 			i = i + 1
 
 			lca.Employer_name = strings.TrimSpace(line[i])
+			lca.Employer_name_lower = strings.ToLower(lca.Employer_name)
 			i = i + 1
 			lca.Employer_address = strings.TrimSpace(line[i])
 			i = i + 1
@@ -277,6 +431,8 @@ func (lcaRepo LcaRepo) loadYear(year int) error {
 		}
 
 	}
+	fmt.Println("end: ", year, time.Now().Format(time.Kitchen))
+
 	return nil
 }
 

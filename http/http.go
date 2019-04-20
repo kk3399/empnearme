@@ -6,6 +6,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	logWriter "github.com/kdamarla/empnearme/log"
 
@@ -45,11 +46,11 @@ func (lcaHandler LcaHandler) ServeHTTP(res http.ResponseWriter, req *http.Reques
 	p := req.URL.Query()
 	zip := p.Get("z")
 	radius, _ := strconv.Atoi(p.Get("r"))
-	emp := p.Get("e")
-	payFrom, _ := strconv.Atoi(p.Get("pf"))
-	payTo, _ := strconv.Atoi(p.Get("pt"))
+	emp := strings.ToLower(p.Get("e"))
+	minPay, _ := strconv.Atoi(p.Get("p"))
+	h1After, _ := time.Parse("20060102", p.Get("d"))
 
-	filter := domain.Filter{Radius: radius, Zipcode: zip, Employer: emp, PayFrom: payFrom, PayTo: payTo}
+	filter := domain.SearchCriteria{Radius: radius, Zipcode: zip, Employer: emp, MinimumPay: minPay, H1FiledAfter: h1After}
 
 	lcas, err := lcaHandler.LcaRepo.Get(filter)
 	if err != nil {

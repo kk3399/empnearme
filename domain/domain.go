@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"strings"
 	"time"
 )
 
@@ -15,6 +16,7 @@ type Lca struct {
 	End_date               time.Time
 	Employer_name          string
 	Employer_address       string
+	Employer_name_lower    string
 	Employer_city          string
 	Employer_state         string
 	Employer_zip           string
@@ -41,17 +43,27 @@ type Lca struct {
 
 //LcaRepo handles read/write to database
 type LcaRepo interface {
-	Get(filter Filter) ([]Lca, error)
-	Load()
+	Get(searchCriteria SearchCriteria) ([]Lca, error)
 }
 
-//Filter for search
-type Filter struct {
+//SearchCriteria for search
+type SearchCriteria struct {
 	Radius             int
 	Zipcode            string
 	Employer           string
-	PayFrom            int
-	PayTo              int
+	MinimumPay         int
 	ExcludeH1Dependent bool
 	H1FiledAfter       time.Time
+}
+
+func (lca Lca) PayMoreThan(pay int) bool {
+	return lca.Pay > pay
+}
+
+func (lca Lca) H1FiledAfter(after time.Time) bool {
+	return lca.Submit_date.After(after)
+}
+
+func (lca Lca) EmployerNamed(employer string) bool {
+	return strings.Contains(lca.Employer_name_lower, employer)
 }
