@@ -34,7 +34,6 @@ var zipcodeMap map[string]geoCoord
 const dbFileName = "data.db"
 const zipcodemapFileName = "zipcodemap.csv"
 const indexNearBy = "nearby"
-const indexPay = "pay"
 const indexEmployerName = "employer"
 const lcaKeyPrefix = "lca"
 const lcaPositionKeySuffix = "pos"
@@ -48,12 +47,14 @@ func Init(log log.Writer) LcaRepo {
 		doesDBexist = false
 	}
 
+	fmt.Println("opening db file: ", time.Now().Format(time.Kitchen))
 	db, err := buntdb.Open(dbFileName)
 	//db, err := buntdb.Open(":memory:")
 	if err != nil {
 		log.Write(err)
 	}
 
+	fmt.Println("setting db config: ", time.Now().Format(time.Kitchen))
 	var config buntdb.Config
 	if err := db.ReadConfig(&config); err != nil {
 		log.Fatal(err.Error())
@@ -65,21 +66,19 @@ func Init(log log.Writer) LcaRepo {
 		log.Fatal(err.Error())
 	}
 
+	fmt.Println("creating spatial index: ", time.Now().Format(time.Kitchen))
 	err = db.CreateSpatialIndex(indexNearBy, fmt.Sprintf("%s:%s:%s", lcaKeyPrefix, "*", lcaPositionKeySuffix), buntdb.IndexRect)
 	if err != nil {
 		log.Write(err)
 	}
 
-	/* err = db.CreateIndex(indexPay, fmt.Sprintf("%s:%s:%s", lcaKeyPrefix, "*", lcaJSONKeySuffix), buntdb.IndexJSON("Pay"))
+	fmt.Println("creating index on employer name: ", time.Now().Format(time.Kitchen))
+	err = db.CreateIndex(indexEmployerName, fmt.Sprintf("%s:%s:%s", lcaKeyPrefix, "*", lcaJSONKeySuffix), buntdb.IndexJSON("Employer_name_lower"))
 	if err != nil {
 		log.Write(err)
 	}
 
-	err = db.CreateIndex(indexEmployerName, fmt.Sprintf("%s:%s:%s", lcaKeyPrefix, "*", lcaJSONKeySuffix), buntdb.IndexJSON("Employer_name_lower"))
-	if err != nil {
-		log.Write(err)
-	} */
-
+	fmt.Println("done initializing database: ", time.Now().Format(time.Kitchen))
 	lcaRepo := LcaRepo{db: db, log: log}
 	if !doesDBexist {
 		lcaRepo.load()
@@ -95,8 +94,7 @@ func (lcaRepo LcaRepo) Close() {
 
 //Load loads all lca from flat files
 func (lcaRepo LcaRepo) load() {
-	year := 2010
-	for ; year < 2020; year++ {
+	for year := time.Now().Year(); year >= 2013; year-- {
 		lcaRepo.loadYear(year)
 	}
 }
@@ -216,7 +214,7 @@ func (lcaRepo LcaRepo) ofEmployer(employerName string) ([]domain.Lca, error) {
 }
 
 func (lcaRepo LcaRepo) nearBy(geoCoord geoCoord, radius int) ([]domain.Lca, error) {
-	lcas := make([]domain.Lca, 30)
+	var lcas []domain.Lca
 
 	locationString := getLocationString(geoCoord)
 	err := lcaRepo.db.View(func(tx *buntdb.Tx) error {
@@ -296,9 +294,8 @@ func (lcaRepo LcaRepo) loadYear(year int) error {
 	fileName := "data/" + strconv.Itoa(year) + ".csv"
 	/*
 		1-year	2-case_number	3-case_status	4-submit_date	5-decision_date	6-start_date	7-end_date	8-employer_name	9-employer_address
-		10-employer_city	11-employer_state	12-employer_zip	13-job_title	14-soc_code	15-soc_name	16-naics_code	17-total_workers
-		18-full_time	19-wage_rate	20-wage_unit	21-wage_level	22-prevailing_wage_source	23-other_wage_source	24-prevailing_wage_from
-		25-prevailing_wage_to	26-prevailing_wage_unit	27-h1b_dependent	28-willful_voilator	29-work_location_city	30-work_location_state
+		10-employer_city	11-employer_state	12-employer_zip	13-job_title	14-naics_code	15-total_workers	16-full_time	17-wage_rate
+		18-wage_unit	19-wage_level	20-h1b_dependent	21-willful_voilator	22-work_location_city	23-work_location_state	24-work_location_zip
 	*/
 	f, err := os.Open(fileName)
 	if err != nil {
@@ -406,16 +403,6 @@ func (lcaRepo LcaRepo) loadYear(year int) error {
 			lca.Pay, err = getPay(lca.Wage_rate, lca.Wage_unit)
 			lca.Wage_level = strings.TrimSpace(line[i])
 			i = i + 1
-			lca.Prevailing_wage_source = strings.TrimSpace(line[i])
-			i = i + 1
-			lca.Other_wage_source = strings.TrimSpace(line[i])
-			i = i + 1
-			lca.Prevailing_wage_from = strings.TrimSpace(line[i])
-			i = i + 1
-			lca.Prevailing_wage_to = strings.TrimSpace(line[i])
-			i = i + 1
-			lca.Prevailing_wage_unit = strings.TrimSpace(line[i])
-			i = i + 1
 			lca.H1b_dependent = strings.TrimSpace(line[i])
 			i = i + 1
 			lca.Willful_voilator = strings.TrimSpace(line[i])
@@ -424,6 +411,7 @@ func (lcaRepo LcaRepo) loadYear(year int) error {
 			i = i + 1
 			lca.Work_location_state = strings.TrimSpace(line[i])
 			i = i + 1
+			lca.Work_location_zip = strings.TrimSpace(line[i])
 
 			if err == nil {
 				err = lcaRepo.add(lca)
@@ -440,7 +428,7 @@ func getPay(wage string, unit string) (int, error) {
 	p := 0
 	if wage != "" {
 		if strings.ToLower(unit) == "year" {
-			return strconv.Atoi(strings.Replace(strings.Split(wage, ".")[0], ",", "", 1))
+			return strconv.Atoi(strings.Replace(strings.Split(strings.Split(wage, "-")[0], ".")[0], ",", "", 1))
 		}
 
 		return 0, errors.New("unknown unit - " + unit)

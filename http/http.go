@@ -1,7 +1,7 @@
 package http
 
 import (
-	"encoding/json"
+	"html/template"
 	"net/http"
 	"path"
 	"strconv"
@@ -12,6 +12,8 @@ import (
 
 	domain "github.com/kdamarla/empnearme/domain"
 )
+
+var templates = template.Must(template.ParseFiles("templates/list.html", "templates/single.html"))
 
 //LcaHandler handles all car http requests
 type LcaHandler struct {
@@ -26,7 +28,25 @@ type Handler struct {
 
 //Serve http at predecided port
 func Serve(handler Handler) error {
-	return http.ListenAndServe(":8080", handler)
+	srv := &http.Server{
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			w.Header().Set("Connection", "close")
+			url := "https://" + req.Host + req.URL.String()
+			http.Redirect(w, req, url, http.StatusMovedPermanently)
+		}),
+	}
+	http.Handle("/lca", handler.LcaHandler)
+	return srv.ListenAndServeTLS("", "")
+	//http.ListenAndServe(":8080", handler)
+}
+
+//StartProfiling the app
+func (h Handler) StartProfiling() {
+	go func() {
+		http.ListenAndServe("localhost:6060", nil)
+	}()
 }
 
 func (h Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
@@ -58,11 +78,12 @@ func (lcaHandler LcaHandler) ServeHTTP(res http.ResponseWriter, req *http.Reques
 	}
 
 	//i think we need a vue js site served from server
-	res.Header().Set("Content-Type", "application/json")
-	res.WriteHeader(http.StatusOK)
+	//res.Header().Set("Content-Type", "application/json")
+	//res.WriteHeader(http.StatusOK)
 	//todo - use html\template and render HTML on server side
 
-	json.NewEncoder(res).Encode(lcas)
+	templates.ExecuteTemplate(res, "list.html", lcas)
+	//json.NewEncoder(res).Encode(lcas)
 }
 
 // shiftPath splits off the first component of p, which will be cleaned of
