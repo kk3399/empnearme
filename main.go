@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	_ "net/http/pprof"
 
 	"github.com/kdamarla/empnearme/buntdb"
@@ -8,12 +9,16 @@ import (
 	logWriter "github.com/kdamarla/empnearme/log"
 )
 
+const dbFileName = "data.db"
+
 func main() {
 
 	logWriter.Init()
 	logger := logWriter.Writer{}
-	repo := buntdb.Init(logger)
+	repo := buntdb.Init(logger, dbFileName)
 	defer repo.Close()
+
+	fmt.Println("db is open")
 
 	lcaHandler := http.LcaHandler{LcaRepo: repo, Log: logger}
 	httpHandler := http.Handler{LcaHandler: lcaHandler}

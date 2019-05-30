@@ -1,6 +1,8 @@
 package writer
 
 import (
+	"os"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -10,7 +12,11 @@ type Writer struct {
 
 //Init is the constructor here
 func Init() {
-	log.SetFormatter(&log.TextFormatter{})
+	log.SetFormatter(&log.TextFormatter{
+		FullTimestamp: true,
+	})
+
+	log.SetOutput(os.Stdout)
 }
 
 func (writer Writer) Write(err error) {

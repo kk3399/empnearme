@@ -31,7 +31,6 @@ type geoCoord struct {
 
 var zipcodeMap map[string]geoCoord
 
-const dbFileName = "data.db"
 const zipcodemapFileName = "zipcodemap.csv"
 const indexNearBy = "nearby"
 const indexEmployerName = "employer"
@@ -40,15 +39,15 @@ const lcaPositionKeySuffix = "pos"
 const lcaJSONKeySuffix = "json"
 
 //Init database
-func Init(log log.Writer) LcaRepo {
+func Init(log log.Writer, filename string) LcaRepo {
 
 	doesDBexist := true
-	if _, err := os.Stat(dbFileName); os.IsNotExist(err) {
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		doesDBexist = false
 	}
 
 	fmt.Println("opening db file: ", time.Now().Format(time.Kitchen))
-	db, err := buntdb.Open(dbFileName)
+	db, err := buntdb.Open(filename)
 	//db, err := buntdb.Open(":memory:")
 	if err != nil {
 		log.Write(err)

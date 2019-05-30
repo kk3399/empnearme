@@ -1,6 +1,7 @@
 package http
 
 import (
+	"crypto/tls"
 	"html/template"
 	"net/http"
 	"path"
@@ -8,9 +9,14 @@ import (
 	"strings"
 	"time"
 
-	logWriter "github.com/kdamarla/empnearme/log"
+	"golang.org/x/crypto/acme/autocert"
 
 	domain "github.com/kdamarla/empnearme/domain"
+	logWriter "github.com/kdamarla/empnearme/log"
+)
+
+const (
+	inProd = false
 )
 
 var templates = template.Must(template.ParseFiles("templates/list.html", "templates/single.html"))
@@ -28,18 +34,49 @@ type Handler struct {
 
 //Serve http at predecided port
 func Serve(handler Handler) error {
-	srv := &http.Server{
+	var srv *http.Server
+	var m *autocert.Manager
+
+	if inProd {
+		m = &autocert.Manager{
+			Prompt:     autocert.AcceptTOS,
+			HostPolicy: autocert.HostWhitelist("www.h1bemployersearch.com"),
+			Cache:      autocert.DirCache("/home/letsencrypt/"),
+		}
+
+		srv = makeHTTPServer()
+		srv.Addr = ":443"
+		srv.TLSConfig = &tls.Config{
+			GetCertificate: m.GetCertificate,
+		}
+
+		go func() {
+			if err := srv.ListenAndServeTLS("", ""); err != nil {
+				handler.LcaHandler.Log.Error(err.Error())
+			}
+		}()
+	}
+
+	srv = makeHTTPServer()
+
+	if m != nil {
+		srv.Handler = m.HTTPHandler(srv.Handler)
+	}
+
+	srv.Addr = ":8080"
+	srv.Handler = handler
+
+	//http.Handle("/lca", handler.LcaHandler)
+
+	return srv.ListenAndServe()
+	//http.ListenAndServe(":8080", handler)
+}
+
+func makeHTTPServer() *http.Server {
+	return &http.Server{
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
-		Handler: http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			w.Header().Set("Connection", "close")
-			url := "https://" + req.Host + req.URL.String()
-			http.Redirect(w, req, url, http.StatusMovedPermanently)
-		}),
 	}
-	http.Handle("/lca", handler.LcaHandler)
-	return srv.ListenAndServeTLS("", "")
-	//http.ListenAndServe(":8080", handler)
 }
 
 //StartProfiling the app
@@ -54,7 +91,7 @@ func (h Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var head string
 
 	head, req.URL.Path = shiftPath(req.URL.Path)
-	if head == "lca" {
+	if head == "lca" { //todo: can make this controller the default if we only do one endpoint?
 		h.LcaHandler.ServeHTTP(res, req)
 		return
 	}
