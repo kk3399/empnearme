@@ -139,9 +139,8 @@ func (lcaRepo LcaRepo) load() {
 
 //compileCache to load all employers near all possible zipcodes and compile a list of all cases for each employer
 func (lcaRepo LcaRepo) compileCache() {
-
-	go lcaRepo.compileLocationCircles()
-	go lcaRepo.compileEmpCase()
+	lcaRepo.compileEmpCase()
+	lcaRepo.compileLocationCircles()
 }
 
 func (lcaRepo LcaRepo) compileLocationCircles() {
@@ -276,14 +275,17 @@ func (lcaRepo LcaRepo) Get(searchCriteria domain.SearchCriteria) ([]domain.Lca, 
 		}
 
 		var cases []string
-		err := lcaRepo.cacheDb.View(func(tx *buntdb.Tx) error {
-			val, err := tx.Get(searchCriteria.Zipcode + padLeft(strconv.Itoa(searchCriteria.Radius), "0", 3))
-			if err != nil {
-				return err
-			}
-			cases = strings.Split(val, ",")
-			return nil
-		})
+		var err error
+		for r:=0; r<searchCriteria.Radius; r=r+5{
+			err = lcaRepo.cacheDb.View(func(tx *buntdb.Tx) error {
+				val, err := tx.Get(searchCriteria.Zipcode + padLeft(strconv.Itoa(searchCriteria.Radius), "0", 3))
+				if err != nil {
+					return err
+				}
+				cases = append(cases, strings.Split(val, ",")...)
+				return nil
+			})
+		}
 
 		if err != nil {
 			geoCoord, err := getGeoCoordFromZip(searchCriteria.Zipcode)
