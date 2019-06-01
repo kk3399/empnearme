@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	domain "github.com/kdamarla/empnearme/domain"
@@ -19,8 +21,9 @@ import (
 
 //LcaRepo - data infrastructure
 type LcaRepo struct {
-	db  *buntdb.DB
-	log log.Writer
+	db      *buntdb.DB
+	cacheDb *buntdb.DB
+	log     log.Writer
 }
 
 //geoCoord type
@@ -29,31 +32,37 @@ type geoCoord struct {
 	long float64
 }
 
+type caseDistance struct {
+	casen string
+	dist  int
+}
+
 var zipcodeMap map[string]geoCoord
 
 const zipcodemapFileName = "zipcodemap.csv"
 const indexNearBy = "nearby"
-const indexEmployerName = "employer"
+const indexEmployerName = "searchemployer"
 const lcaKeyPrefix = "lca"
 const lcaPositionKeySuffix = "pos"
 const lcaJSONKeySuffix = "json"
+const lcaEmpNameKeySuffix = "empname"
 
 //Init database
-func Init(log log.Writer, filename string) LcaRepo {
+func Init(log log.Writer, filename, cacheFilename string) LcaRepo {
 
 	doesDBexist := true
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		doesDBexist = false
 	}
 
-	fmt.Println("opening db file: ", time.Now().Format(time.Kitchen))
+	log.Info("opening db file")
 	db, err := buntdb.Open(filename)
 	//db, err := buntdb.Open(":memory:")
 	if err != nil {
 		log.Write(err)
 	}
 
-	fmt.Println("setting db config: ", time.Now().Format(time.Kitchen))
+	log.Info("setting db config: ")
 	var config buntdb.Config
 	if err := db.ReadConfig(&config); err != nil {
 		log.Fatal(err.Error())
@@ -65,22 +74,52 @@ func Init(log log.Writer, filename string) LcaRepo {
 		log.Fatal(err.Error())
 	}
 
-	fmt.Println("creating spatial index: ", time.Now().Format(time.Kitchen))
+	log.Info("creating spatial index: ")
 	err = db.CreateSpatialIndex(indexNearBy, fmt.Sprintf("%s:%s:%s", lcaKeyPrefix, "*", lcaPositionKeySuffix), buntdb.IndexRect)
 	if err != nil {
 		log.Write(err)
 	}
 
-	fmt.Println("creating index on employer name: ", time.Now().Format(time.Kitchen))
-	err = db.CreateIndex(indexEmployerName, fmt.Sprintf("%s:%s:%s", lcaKeyPrefix, "*", lcaJSONKeySuffix), buntdb.IndexJSON("Employer_name_lower"))
+	log.Info("creating index on employer name: ")
+	err = db.CreateIndex(indexEmployerName, fmt.Sprintf("%s:%s:%s", lcaKeyPrefix, "*", lcaEmpNameKeySuffix), buntdb.IndexString)
 	if err != nil {
 		log.Write(err)
 	}
 
-	fmt.Println("done initializing database: ", time.Now().Format(time.Kitchen))
-	lcaRepo := LcaRepo{db: db, log: log}
+	// Load cache database
+
+	doesCacheDBexist := true
+	if _, err := os.Stat(cacheFilename); os.IsNotExist(err) {
+		doesCacheDBexist = false
+	}
+
+	log.Info("opening cache db file: ")
+	cacheDb, err := buntdb.Open(cacheFilename)
+	//db, err := buntdb.Open(":memory:")
+	if err != nil {
+		log.Write(err)
+	}
+
+	log.Info("setting cahce db config: ")
+	var cacheConfig buntdb.Config
+	if err := cacheDb.ReadConfig(&cacheConfig); err != nil {
+		log.Fatal(err.Error())
+	}
+
+	cacheConfig.AutoShrinkDisabled = true
+
+	if err := cacheDb.SetConfig(cacheConfig); err != nil {
+		log.Fatal(err.Error())
+	}
+
+	log.Info("done initializing databases: ")
+	lcaRepo := LcaRepo{db: db, log: log, cacheDb: cacheDb}
 	if !doesDBexist {
 		lcaRepo.load()
+	}
+
+	if !doesCacheDBexist {
+		lcaRepo.compileCache()
 	}
 
 	return lcaRepo
@@ -98,10 +137,127 @@ func (lcaRepo LcaRepo) load() {
 	}
 }
 
+//compileCache to load all employers near all possible zipcodes and compile a list of all cases for each employer
+func (lcaRepo LcaRepo) compileCache() {
+
+	go lcaRepo.compileLocationCircles()
+	go lcaRepo.compileEmpCase()
+}
+
+func (lcaRepo LcaRepo) compileLocationCircles() {
+
+	lcaRepo.log.Info("start compileLocationCircles")
+
+	w := runtime.NumCPU() * 2
+	var wg sync.WaitGroup
+	loadZipCodesIfNeeded()
+	zips := make(chan string)
+
+	go func() {
+		for z := range zipcodeMap {
+			zips <- z
+		}
+		<-time.After(time.Second) //needed?
+		close(zips)
+	}()
+
+	wg.Add(w)
+	for i := 0; i < w; i++ {
+		go func() {
+			for z := range zips {
+				zipDistmap := make(map[string]string)
+				r := 500
+				caseDistances, err := lcaRepo.nearBy(zipcodeMap[z], r)
+				if err == nil {
+					for _, caseDist := range caseDistances {
+						//add them to a map with proper key, then loop over map and insert to cahce db?
+						zipDistKey := getZipDistanceKey(z, caseDist.dist)
+						if val, ok := zipDistmap[zipDistKey]; ok {
+							if len(val) > 0 {
+								zipDistmap[zipDistKey] = val + "," + caseDist.casen
+							} else {
+								zipDistmap[zipDistKey] = caseDist.casen
+							}
+
+						}
+					}
+				} else {
+					lcaRepo.log.Write(err)
+				}
+
+				for zipDistKey, cases := range zipDistmap {
+					err := lcaRepo.cacheDb.Update(func(tx *buntdb.Tx) error {
+						_, _, err := tx.Set(zipDistKey, cases, nil)
+						return err
+					})
+					if err != nil {
+						lcaRepo.log.Write(err)
+					}
+				}
+			}
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+	lcaRepo.log.Info("done compileLocationCircles")
+}
+
+func getZipDistanceKey(zip string, dist int) string {
+	r := (dist / 5) + 1
+	return zip + padLeft(strconv.Itoa(r*5), "0", 3)
+}
+
+func (lcaRepo LcaRepo) compileEmpCase() {
+	var empNameMap map[string]string
+	c := 0 //todo - delete me
+
+	lcaRepo.log.Info("start compileEmpCase")
+	lcaRepo.log.Info("	start compiling map of employer names")
+
+	lcaRepo.db.View(func(tx *buntdb.Tx) error {
+		tx.Ascend(indexEmployerName, func(casenum, empName string) bool {
+			if len(empName) <= 0 {
+				c++
+				return true
+			}
+
+			if val, ok := empNameMap[empName]; ok {
+				if len(val) > 0 {
+					empNameMap[empName] = val + "," + casenum
+				} else {
+					empNameMap[empName] = casenum
+				}
+
+			}
+
+			return true
+		})
+		return nil
+	})
+
+	lcaRepo.log.Info(fmt.Sprintf("%d recods doesnt have employer name", c))
+	lcaRepo.log.Info("done compiling map of employer names, starting adding to cache db")
+
+	for empName, cases := range empNameMap {
+		err := lcaRepo.cacheDb.Update(func(tx *buntdb.Tx) error {
+			_, _, err := tx.Set(empName, cases, nil)
+			return err
+		})
+		if err != nil {
+			lcaRepo.log.Write(err)
+		}
+	}
+
+	lcaRepo.log.Info("done compileEmpCase")
+}
+
 //Get lcas
 func (lcaRepo LcaRepo) Get(searchCriteria domain.SearchCriteria) ([]domain.Lca, error) {
 
 	var filterEmployer, filterPay, filterH1Date bool
+	var lcas []domain.Lca
+
 	if len(searchCriteria.Employer) > 0 {
 		filterEmployer = true
 	}
@@ -118,37 +274,98 @@ func (lcaRepo LcaRepo) Get(searchCriteria domain.SearchCriteria) ([]domain.Lca, 
 		if searchCriteria.Radius < 5 {
 			searchCriteria.Radius = 5
 		}
-		geoCoord, err := getGeoCoordFromZip(searchCriteria.Zipcode)
-		if err != nil {
-			return nil, err
-		}
-		lcas, err := lcaRepo.nearBy(geoCoord, searchCriteria.Radius)
-		if err != nil {
-			return nil, err
-		}
 
-		for i, lca := range lcas {
-			if (filterEmployer && !lca.EmployerNamed(searchCriteria.Employer)) ||
-				(filterPay && !lca.PayMoreThan(searchCriteria.MinimumPay)) ||
-				(filterH1Date && !lca.H1FiledAfter(searchCriteria.H1FiledAfter)) {
-				lcas[i] = domain.Lca{}
+		var cases []string
+		err := lcaRepo.cacheDb.View(func(tx *buntdb.Tx) error {
+			val, err := tx.Get(searchCriteria.Zipcode + padLeft(strconv.Itoa(searchCriteria.Radius), "0", 3))
+			if err != nil {
+				return err
+			}
+			cases = strings.Split(val, ",")
+			return nil
+		})
+
+		if err != nil {
+			geoCoord, err := getGeoCoordFromZip(searchCriteria.Zipcode)
+			if err != nil {
+				return nil, err
+			}
+			var caseDistances []caseDistance
+			caseDistances, err = lcaRepo.nearBy(geoCoord, searchCriteria.Radius)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, caseD := range caseDistances {
+				cases = append(cases, caseD.casen)
 			}
 		}
-		return filter(lcas), nil
+
+		for _, casen := range cases {
+			err := lcaRepo.db.View(func(tx *buntdb.Tx) error {
+				//get the json key from position key
+				jsonKey := getJSONKeyFromPositionKey(casen)
+				//get the lca json
+				value, err := tx.Get(jsonKey, true)
+				//lcaRepo.log.Info("got data")
+				if err == nil {
+					var lca domain.Lca
+					err := json.Unmarshal([]byte(value), &lca)
+					if err == nil {
+						if !((filterEmployer && !lca.EmployerNamed(searchCriteria.Employer)) ||
+							(filterPay && !lca.PayMoreThan(searchCriteria.MinimumPay)) ||
+							(filterH1Date && !lca.H1FiledAfter(searchCriteria.H1FiledAfter))) {
+							lcas = append(lcas, lca)
+						}
+					} else {
+						lcaRepo.log.Write(err)
+					}
+				} else {
+					lcaRepo.log.Write(err)
+				}
+				return nil
+			})
+			if err != nil {
+				lcaRepo.log.Write(err)
+			}
+		}
+		return lcas, nil
 	}
 
 	if filterEmployer {
-		lcas, err := lcaRepo.ofEmployer(searchCriteria.Employer)
+		cases, err := lcaRepo.ofEmployer(searchCriteria.Employer)
 		if err != nil {
 			return nil, err
 		}
-		for i, lca := range lcas {
-			if (filterPay && !lca.PayMoreThan(searchCriteria.MinimumPay)) ||
-				(filterH1Date && !lca.H1FiledAfter(searchCriteria.H1FiledAfter)) {
-				lcas[i] = domain.Lca{}
+
+		for _, casenum := range cases {
+			err := lcaRepo.db.View(func(tx *buntdb.Tx) error {
+				//get the json key from position key
+				jsonKey := getJSONKeyFromEmpNameKey(casenum)
+				//get the lca json
+				value, err := tx.Get(jsonKey, true)
+				//lcaRepo.log.Info("got data")
+				if err == nil {
+					var lca domain.Lca
+					err := json.Unmarshal([]byte(value), &lca)
+					if err == nil {
+						if !(filterPay && !lca.PayMoreThan(searchCriteria.MinimumPay)) ||
+							(filterH1Date && !lca.H1FiledAfter(searchCriteria.H1FiledAfter)) {
+							lcas = append(lcas, lca)
+						}
+					} else {
+						lcaRepo.log.Write(err)
+					}
+				} else {
+					lcaRepo.log.Write(err)
+				}
+				return nil
+			})
+			if err != nil {
+				lcaRepo.log.Write(err)
 			}
 		}
-		return filter(lcas), nil
+		return lcas, nil
 	}
 
 	if filterPay {
@@ -162,43 +379,13 @@ func (lcaRepo LcaRepo) Get(searchCriteria domain.SearchCriteria) ([]domain.Lca, 
 	return nil, nil
 }
 
-func filter(lcas []domain.Lca) []domain.Lca {
-	if len(lcas) > 0 {
-		filteredLcas := make([]domain.Lca, 0)
-		for _, lca := range lcas {
-			if lca.Year > 0 {
-				filteredLcas = append(filteredLcas, lca)
-			}
-		}
-		return filteredLcas
-	}
-	return nil
-}
-
-func remove(lcas []domain.Lca, i int) []domain.Lca {
-	lcas[len(lcas)-1], lcas[i] = lcas[i], lcas[len(lcas)-1]
-	return lcas[:len(lcas)-1]
-}
-
-func (lcaRepo LcaRepo) ofEmployer(employerName string) ([]domain.Lca, error) {
-	var lcas []domain.Lca
+func (lcaRepo LcaRepo) ofEmployer(employerName string) ([]string, error) {
+	var cases []string
 	err := lcaRepo.db.View(func(tx *buntdb.Tx) error {
 		tx.Ascend(indexEmployerName, func(key, value string) bool {
 			fmt.Printf("%s: %s\n", key, value)
 			if strings.Contains(value, employerName) {
-				//get the lca json
-				value, err := tx.Get(key, true)
-				if err == nil {
-					var lca domain.Lca
-					err := json.Unmarshal([]byte(value), &lca)
-					if err == nil {
-						lcas = append(lcas, lca)
-					} else {
-						lcaRepo.log.Write(err)
-					}
-				} else {
-					lcaRepo.log.Write(err)
-				}
+				cases = append(cases, key)
 			}
 			return false
 		})
@@ -209,11 +396,11 @@ func (lcaRepo LcaRepo) ofEmployer(employerName string) ([]domain.Lca, error) {
 		return nil, err
 	}
 
-	return lcas, nil
+	return cases, nil
 }
 
-func (lcaRepo LcaRepo) nearBy(geoCoord geoCoord, radius int) ([]domain.Lca, error) {
-	var lcas []domain.Lca
+func (lcaRepo LcaRepo) nearBy(geoCoord geoCoord, radius int) ([]caseDistance, error) {
+	var caseDistances []caseDistance
 
 	locationString := getLocationString(geoCoord)
 	err := lcaRepo.db.View(func(tx *buntdb.Tx) error {
@@ -223,22 +410,7 @@ func (lcaRepo LcaRepo) nearBy(geoCoord geoCoord, radius int) ([]domain.Lca, erro
 				miles := getDistance(geoCoord.lat, geoCoord.long, thisGeoCoord.lat, thisGeoCoord.long)
 				radius := float64(radius)
 				if miles <= radius {
-					//get the json key from position key
-					jsonKey := getJSONKeyFromPositionKey(key)
-					//get the lca json
-					value, err = tx.Get(jsonKey, true)
-					if err == nil {
-						var lca domain.Lca
-						err := json.Unmarshal([]byte(value), &lca)
-						if err == nil {
-							lcas = append(lcas, lca)
-						} else {
-							lcaRepo.log.Write(err)
-						}
-					} else {
-						lcaRepo.log.Write(err)
-					}
-
+					caseDistances = append(caseDistances, caseDistance{casen: key, dist: int(miles)})
 					return true
 				}
 			} else {
@@ -253,7 +425,7 @@ func (lcaRepo LcaRepo) nearBy(geoCoord geoCoord, radius int) ([]domain.Lca, erro
 		return nil, err
 	}
 
-	return lcas, nil
+	return caseDistances, nil
 }
 
 func (lcaRepo LcaRepo) add(lca domain.Lca) error {
@@ -281,6 +453,12 @@ func (lcaRepo LcaRepo) add(lca domain.Lca) error {
 			return err
 		}
 
+		_, _, err = tx.Set(fmt.Sprintf("%s:%s:%s", lcaKeyPrefix, lca.Case_number, lcaEmpNameKeySuffix), lca.Employer_name_lower, nil)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+
 		return nil
 	})
 
@@ -289,7 +467,7 @@ func (lcaRepo LcaRepo) add(lca domain.Lca) error {
 
 func (lcaRepo LcaRepo) loadYear(year int) error {
 
-	fmt.Println("start: ", year, time.Now().Format(time.Kitchen))
+	lcaRepo.log.Info(fmt.Sprintf("start: %d", year))
 	fileName := "data/" + strconv.Itoa(year) + ".csv"
 	/*
 		1-year	2-case_number	3-case_status	4-submit_date	5-decision_date	6-start_date	7-end_date	8-employer_name	9-employer_address
@@ -381,7 +559,7 @@ func (lcaRepo LcaRepo) loadYear(year int) error {
 			i = i + 1
 			lca.Employer_state = strings.TrimSpace(line[i])
 			i = i + 1
-			lca.Employer_zip = strings.TrimSpace(line[i])
+			lca.Employer_zip = padLeft(strings.TrimSpace(line[i]), "0", 5)
 			i = i + 1
 			lca.Job_title = strings.TrimSpace(line[i])
 			i = i + 1
@@ -418,9 +596,18 @@ func (lcaRepo LcaRepo) loadYear(year int) error {
 		}
 
 	}
-	fmt.Println("end: ", year, time.Now().Format(time.Kitchen))
+	lcaRepo.log.Info(fmt.Sprintf("end: %d", year))
 
 	return nil
+}
+
+func padLeft(str, pad string, lenght int) string {
+	for {
+		str = pad + str
+		if len(str) > lenght {
+			return str[0:lenght]
+		}
+	}
 }
 
 func getPay(wage string, unit string) (int, error) {
@@ -439,18 +626,27 @@ func getJSONKeyFromPositionKey(key string) string {
 	return strings.Replace(key, lcaPositionKeySuffix, lcaJSONKeySuffix, 1)
 }
 
+func getJSONKeyFromEmpNameKey(key string) string {
+	return strings.Replace(key, lcaEmpNameKeySuffix, lcaJSONKeySuffix, 1)
+}
+
+func loadZipCodesIfNeeded() {
+	if zipcodeMap == nil {
+		err := loadZipcodeMap()
+		if err != nil {
+			panic("error loading zipcode to lat,long csv file to a map")
+		}
+	}
+}
+
 //getGeoCoordFromZip returns the lat long from zipcode
 func getGeoCoordFromZip(zipcode string) (geoCoord, error) {
 
 	if len(zipcode) != 5 {
 		return geoCoord{}, errors.New("zipcode is 5 digits and is not valid")
 	}
-	if zipcodeMap == nil {
-		err := loadZipcodeMap()
-		if err != nil {
-			return geoCoord{}, fmt.Errorf(err.Error(), "error loading zipcode to lat,long csv file to a map")
-		}
-	}
+
+	loadZipCodesIfNeeded()
 
 	zipGeoCoord := zipcodeMap[zipcode]
 	if zipGeoCoord.lat == 0 && zipGeoCoord.long == 0 {
@@ -460,7 +656,6 @@ func getGeoCoordFromZip(zipcode string) (geoCoord, error) {
 }
 
 func loadZipcodeMap() error {
-
 	f, err := os.Open(zipcodemapFileName)
 	if err != nil {
 		return err
@@ -486,7 +681,7 @@ func loadZipcodeMap() error {
 		if err != nil {
 			return err
 		}
-		zipcodeMap[strings.TrimSpace(line[0])] = geoCoord{lat: lat, long: long}
+		zipcodeMap[padLeft(strings.TrimSpace(line[0]), "0", 5)] = geoCoord{lat: lat, long: long}
 	}
 	return nil
 }

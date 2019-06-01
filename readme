@@ -1,0 +1,7 @@
+- data db has 
+    - case key with json lca details
+    - a index with case key and employer name in lower
+    - a spacial index with case key and geocoordinates of case employer
+- cache db has
+    - entries with string key - zipcode + pad(000) + num(5 increments from 5 to 100) and values being csv of case numbers within the radius (between 5 to 100 miles)
+    - entries with employer name lower with all case numbers in csv format
