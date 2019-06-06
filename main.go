@@ -9,13 +9,12 @@ import (
 )
 
 const dbFileName = "data.db"
-const cacheDbFileName = "cache.db"
 
 func main() {
 
 	logWriter.Init()
 	logger := logWriter.Writer{}
-	repo := buntdb.Init(logger, dbFileName, cacheDbFileName)
+	repo := buntdb.Init(logger, dbFileName)
 	defer repo.Close()
 
 	logger.Info("db is open")

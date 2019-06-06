@@ -17,4 +17,5 @@ desktop.ini
 .vscode/
 debug
 data.db
-cache.db
+name_cache.db
+location_cache.db

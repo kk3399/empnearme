@@ -21,9 +21,10 @@ import (
 
 //LcaRepo - data infrastructure
 type LcaRepo struct {
-	db      *buntdb.DB
-	cacheDb *buntdb.DB
-	log     log.Writer
+	db              *buntdb.DB
+	nameCacheDb     *buntdb.DB
+	locationCacheDb *buntdb.DB
+	log             log.Writer
 }
 
 //geoCoord type
@@ -47,8 +48,11 @@ const lcaPositionKeySuffix = "pos"
 const lcaJSONKeySuffix = "json"
 const lcaEmpNameKeySuffix = "empname"
 
+const nameCacheDbFileName = "name_cache.db"
+const locationCacheDbFileName = "location_cache.db"
+
 //Init database
-func Init(log log.Writer, filename, cacheFilename string) LcaRepo {
+func Init(log log.Writer, filename string) LcaRepo {
 
 	doesDBexist := true
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
@@ -80,46 +84,73 @@ func Init(log log.Writer, filename, cacheFilename string) LcaRepo {
 		log.Write(err)
 	}
 
-	log.Info("creating index on employer name: ")
-	err = db.CreateIndex(indexEmployerName, fmt.Sprintf("%s:%s:%s", lcaKeyPrefix, "*", lcaEmpNameKeySuffix), buntdb.IndexString)
-	if err != nil {
-		log.Write(err)
-	}
+	/*
+
+		log.Info("creating index on employer name: ")
+		err = db.CreateIndex(indexEmployerName, fmt.Sprintf("%s:%s:%s", lcaKeyPrefix, "*", lcaEmpNameKeySuffix), buntdb.IndexString)
+		if err != nil {
+			log.Write(err)
+		}
+	*/
 
 	// Load cache database
-
-	doesCacheDBexist := true
-	if _, err := os.Stat(cacheFilename); os.IsNotExist(err) {
-		doesCacheDBexist = false
+	doesNameCacheDBexist, doesLocationCacheDBexist := true, true
+	if _, err := os.Stat(nameCacheDbFileName); os.IsNotExist(err) {
+		doesNameCacheDBexist = false
 	}
 
-	log.Info("opening cache db file: ")
-	cacheDb, err := buntdb.Open(cacheFilename)
-	//db, err := buntdb.Open(":memory:")
+	if _, err := os.Stat(locationCacheDbFileName); os.IsNotExist(err) {
+		doesLocationCacheDBexist = false
+	}
+
+	/*
+		log.Info("opening nameCacheDbFileName: ")
+		nameCacheDb, err := buntdb.Open(nameCacheDbFileName)
+		if err != nil {
+			log.Write(err)
+		}
+
+		log.Info("setting nameCacheDbFileName db config: ")
+		if err := nameCacheDb.ReadConfig(&config); err != nil {
+			log.Fatal(err.Error())
+		}
+
+		config.AutoShrinkDisabled = true
+
+		if err := nameCacheDb.SetConfig(config); err != nil {
+			log.Fatal(err.Error())
+		}
+	*/
+
+	log.Info("opening locationCacheDbFileName: ")
+	locationCacheDb, err := buntdb.Open(locationCacheDbFileName)
 	if err != nil {
 		log.Write(err)
 	}
 
-	log.Info("setting cahce db config: ")
-	var cacheConfig buntdb.Config
-	if err := cacheDb.ReadConfig(&cacheConfig); err != nil {
+	log.Info("setting locationCacheDbFileName db config: ")
+	if err := locationCacheDb.ReadConfig(&config); err != nil {
 		log.Fatal(err.Error())
 	}
 
-	cacheConfig.AutoShrinkDisabled = true
+	config.AutoShrinkDisabled = true
 
-	if err := cacheDb.SetConfig(cacheConfig); err != nil {
+	if err := locationCacheDb.SetConfig(config); err != nil {
 		log.Fatal(err.Error())
 	}
 
 	log.Info("done initializing databases: ")
-	lcaRepo := LcaRepo{db: db, log: log, cacheDb: cacheDb}
+	lcaRepo := LcaRepo{db: db, log: log, locationCacheDb: locationCacheDb}
 	if !doesDBexist {
 		lcaRepo.load()
 	}
 
-	if !doesCacheDBexist {
-		lcaRepo.compileCache()
+	if !doesNameCacheDBexist {
+		lcaRepo.compileEmpNameCache()
+	}
+
+	if !doesLocationCacheDBexist {
+		lcaRepo.compileLocationCirclesCache()
 	}
 
 	return lcaRepo
@@ -137,17 +168,11 @@ func (lcaRepo LcaRepo) load() {
 	}
 }
 
-//compileCache to load all employers near all possible zipcodes and compile a list of all cases for each employer
-func (lcaRepo LcaRepo) compileCache() {
-	lcaRepo.compileEmpCase()
-	lcaRepo.compileLocationCircles()
-}
+func (lcaRepo LcaRepo) compileLocationCirclesCache() {
 
-func (lcaRepo LcaRepo) compileLocationCircles() {
+	lcaRepo.log.Info("start compileLocationCirclesCache")
 
-	lcaRepo.log.Info("start compileLocationCircles")
-
-	w := runtime.NumCPU() * 2
+	w := runtime.NumCPU() / 2
 	var wg sync.WaitGroup
 	loadZipCodesIfNeeded()
 	zips := make(chan string)
@@ -172,12 +197,9 @@ func (lcaRepo LcaRepo) compileLocationCircles() {
 						//add them to a map with proper key, then loop over map and insert to cahce db?
 						zipDistKey := getZipDistanceKey(z, caseDist.dist)
 						if val, ok := zipDistmap[zipDistKey]; ok {
-							if len(val) > 0 {
-								zipDistmap[zipDistKey] = val + "," + caseDist.casen
-							} else {
-								zipDistmap[zipDistKey] = caseDist.casen
-							}
-
+							zipDistmap[zipDistKey] = val + "," + caseDist.casen
+						} else {
+							zipDistmap[zipDistKey] = caseDist.casen
 						}
 					}
 				} else {
@@ -185,7 +207,7 @@ func (lcaRepo LcaRepo) compileLocationCircles() {
 				}
 
 				for zipDistKey, cases := range zipDistmap {
-					err := lcaRepo.cacheDb.Update(func(tx *buntdb.Tx) error {
+					err := lcaRepo.locationCacheDb.Update(func(tx *buntdb.Tx) error {
 						_, _, err := tx.Set(zipDistKey, cases, nil)
 						return err
 					})
@@ -203,15 +225,14 @@ func (lcaRepo LcaRepo) compileLocationCircles() {
 }
 
 func getZipDistanceKey(zip string, dist int) string {
-	r := (dist / 5) + 1
-	return zip + padLeft(strconv.Itoa(r*5), "0", 3)
+	return zip + fmt.Sprintf("%03d", ((dist/5)+1)*5)
 }
 
-func (lcaRepo LcaRepo) compileEmpCase() {
-	var empNameMap map[string]string
+func (lcaRepo LcaRepo) compileEmpNameCache() {
+	empNameMap := make(map[string]string)
 	c := 0 //todo - delete me
 
-	lcaRepo.log.Info("start compileEmpCase")
+	lcaRepo.log.Info("start compileEmpNameCache")
 	lcaRepo.log.Info("	start compiling map of employer names")
 
 	lcaRepo.db.View(func(tx *buntdb.Tx) error {
@@ -222,12 +243,9 @@ func (lcaRepo LcaRepo) compileEmpCase() {
 			}
 
 			if val, ok := empNameMap[empName]; ok {
-				if len(val) > 0 {
-					empNameMap[empName] = val + "," + casenum
-				} else {
-					empNameMap[empName] = casenum
-				}
-
+				empNameMap[empName] = val + "," + casenum
+			} else {
+				empNameMap[empName] = casenum
 			}
 
 			return true
@@ -239,7 +257,7 @@ func (lcaRepo LcaRepo) compileEmpCase() {
 	lcaRepo.log.Info("done compiling map of employer names, starting adding to cache db")
 
 	for empName, cases := range empNameMap {
-		err := lcaRepo.cacheDb.Update(func(tx *buntdb.Tx) error {
+		err := lcaRepo.nameCacheDb.Update(func(tx *buntdb.Tx) error {
 			_, _, err := tx.Set(empName, cases, nil)
 			return err
 		})
@@ -276,9 +294,9 @@ func (lcaRepo LcaRepo) Get(searchCriteria domain.SearchCriteria) ([]domain.Lca, 
 
 		var cases []string
 		var err error
-		for r:=0; r<searchCriteria.Radius; r=r+5{
-			err = lcaRepo.cacheDb.View(func(tx *buntdb.Tx) error {
-				val, err := tx.Get(searchCriteria.Zipcode + padLeft(strconv.Itoa(searchCriteria.Radius), "0", 3))
+		for r := 5; r < searchCriteria.Radius; r = r + 5 {
+			err = lcaRepo.locationCacheDb.View(func(tx *buntdb.Tx) error {
+				val, err := tx.Get(searchCriteria.Zipcode + fmt.Sprintf("%03d", r))
 				if err != nil {
 					return err
 				}
@@ -335,9 +353,22 @@ func (lcaRepo LcaRepo) Get(searchCriteria domain.SearchCriteria) ([]domain.Lca, 
 	}
 
 	if filterEmployer {
-		cases, err := lcaRepo.ofEmployer(searchCriteria.Employer)
-		if err != nil {
-			return nil, err
+		var cases []string
+		var err error
+
+		lcaRepo.nameCacheDb.View(func(tx *buntdb.Tx) error {
+			value, err := tx.Get(searchCriteria.Employer, true)
+			if err == nil && len(value) > 0 {
+				cases = strings.Split(value, ",")
+			}
+			return nil
+		})
+
+		if len(cases) == 0 {
+			cases, err = lcaRepo.ofEmployer(searchCriteria.Employer)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		for _, casenum := range cases {
@@ -652,7 +683,7 @@ func getGeoCoordFromZip(zipcode string) (geoCoord, error) {
 
 	zipGeoCoord := zipcodeMap[zipcode]
 	if zipGeoCoord.lat == 0 && zipGeoCoord.long == 0 {
-		return zipGeoCoord, errors.New("latitude, longitude not found for zipcode")
+		return zipGeoCoord, errors.New("latitude, longitude not found for zipcode " + zipcode)
 	}
 	return zipGeoCoord, nil
 }
