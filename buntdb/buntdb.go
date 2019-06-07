@@ -7,10 +7,8 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"runtime"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	domain "github.com/kdamarla/empnearme/domain"
@@ -49,7 +47,6 @@ const lcaJSONKeySuffix = "json"
 const lcaEmpNameKeySuffix = "empname"
 
 const nameCacheDbFileName = "name_cache.db"
-const locationCacheDbFileName = "location_cache.db"
 
 //Init database
 func Init(log log.Writer, filename string) LcaRepo {
@@ -94,63 +91,37 @@ func Init(log log.Writer, filename string) LcaRepo {
 	*/
 
 	// Load cache database
-	doesNameCacheDBexist, doesLocationCacheDBexist := true, true
+	doesNameCacheDBexist := true
 	if _, err := os.Stat(nameCacheDbFileName); os.IsNotExist(err) {
 		doesNameCacheDBexist = false
 	}
-
-	if _, err := os.Stat(locationCacheDbFileName); os.IsNotExist(err) {
-		doesLocationCacheDBexist = false
-	}
-
-	/*
-		log.Info("opening nameCacheDbFileName: ")
-		nameCacheDb, err := buntdb.Open(nameCacheDbFileName)
-		if err != nil {
-			log.Write(err)
-		}
-
-		log.Info("setting nameCacheDbFileName db config: ")
-		if err := nameCacheDb.ReadConfig(&config); err != nil {
-			log.Fatal(err.Error())
-		}
-
-		config.AutoShrinkDisabled = true
-
-		if err := nameCacheDb.SetConfig(config); err != nil {
-			log.Fatal(err.Error())
-		}
-	*/
-
-	log.Info("opening locationCacheDbFileName: ")
-	locationCacheDb, err := buntdb.Open(locationCacheDbFileName)
+	
+	log.Info("opening nameCacheDbFileName: ")
+	nameCacheDb, err := buntdb.Open(nameCacheDbFileName)
 	if err != nil {
 		log.Write(err)
 	}
 
-	log.Info("setting locationCacheDbFileName db config: ")
-	if err := locationCacheDb.ReadConfig(&config); err != nil {
+	log.Info("setting nameCacheDbFileName db config: ")
+	if err := nameCacheDb.ReadConfig(&config); err != nil {
 		log.Fatal(err.Error())
 	}
 
 	config.AutoShrinkDisabled = true
 
-	if err := locationCacheDb.SetConfig(config); err != nil {
+	if err := nameCacheDb.SetConfig(config); err != nil {
 		log.Fatal(err.Error())
 	}
+	
 
 	log.Info("done initializing databases: ")
-	lcaRepo := LcaRepo{db: db, log: log, locationCacheDb: locationCacheDb}
+	lcaRepo := LcaRepo{db: db, log: log, nameCacheDb: nameCacheDb}
 	if !doesDBexist {
 		lcaRepo.load()
 	}
 
 	if !doesNameCacheDBexist {
 		lcaRepo.compileEmpNameCache()
-	}
-
-	if !doesLocationCacheDBexist {
-		lcaRepo.compileLocationCirclesCache()
 	}
 
 	return lcaRepo
@@ -166,62 +137,6 @@ func (lcaRepo LcaRepo) load() {
 	for year := time.Now().Year(); year >= 2013; year-- {
 		lcaRepo.loadYear(year)
 	}
-}
-
-func (lcaRepo LcaRepo) compileLocationCirclesCache() {
-
-	lcaRepo.log.Info("start compileLocationCirclesCache")
-
-	w := runtime.NumCPU() / 2
-	var wg sync.WaitGroup
-	loadZipCodesIfNeeded()
-	zips := make(chan string)
-
-	go func() {
-		for z := range zipcodeMap {
-			zips <- z
-		}
-		<-time.After(time.Second) //needed?
-		close(zips)
-	}()
-
-	wg.Add(w)
-	for i := 0; i < w; i++ {
-		go func() {
-			for z := range zips {
-				zipDistmap := make(map[string]string)
-				r := 500
-				caseDistances, err := lcaRepo.nearBy(zipcodeMap[z], r)
-				if err == nil {
-					for _, caseDist := range caseDistances {
-						//add them to a map with proper key, then loop over map and insert to cahce db?
-						zipDistKey := getZipDistanceKey(z, caseDist.dist)
-						if val, ok := zipDistmap[zipDistKey]; ok {
-							zipDistmap[zipDistKey] = val + "," + caseDist.casen
-						} else {
-							zipDistmap[zipDistKey] = caseDist.casen
-						}
-					}
-				} else {
-					lcaRepo.log.Write(err)
-				}
-
-				for zipDistKey, cases := range zipDistmap {
-					err := lcaRepo.locationCacheDb.Update(func(tx *buntdb.Tx) error {
-						_, _, err := tx.Set(zipDistKey, cases, nil)
-						return err
-					})
-					if err != nil {
-						lcaRepo.log.Write(err)
-					}
-				}
-			}
-			wg.Done()
-		}()
-	}
-
-	wg.Wait()
-	lcaRepo.log.Info("done compileLocationCircles")
 }
 
 func getZipDistanceKey(zip string, dist int) string {
@@ -288,6 +203,11 @@ func (lcaRepo LcaRepo) Get(searchCriteria domain.SearchCriteria) ([]domain.Lca, 
 	}
 
 	if len(searchCriteria.Zipcode) > 0 {
+
+		if len(searchCriteria.Zipcode) < 5 {
+			searchCriteria.Zipcode = fmt.Sprintf("%05s", strings.TrimSpace(searchCriteria.Zipcode))
+		}
+
 		if searchCriteria.Radius < 5 {
 			searchCriteria.Radius = 5
 		}
@@ -714,7 +634,7 @@ func loadZipcodeMap() error {
 		if err != nil {
 			return err
 		}
-		zipcodeMap[padLeft(strings.TrimSpace(line[0]), "0", 5)] = geoCoord{lat: lat, long: long}
+		zipcodeMap[fmt.Sprintf("%05s", strings.TrimSpace(line[0]))] = geoCoord{lat: lat, long: long}
 	}
 	return nil
 }
