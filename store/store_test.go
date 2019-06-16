@@ -1,4 +1,4 @@
-package buntdb
+package store
 
 import (
 	"testing"
@@ -11,7 +11,7 @@ import (
 const testingdbFileName = "C:\\Users\\kdamarla\\go\\src\\github.com\\kdamarla\\empnearme\\data.db"
 
 func BenchmarkGet(b *testing.B) {
-	lcaRepo := Init(log.Writer{}, testingdbFileName,)
+	lcaRepo := Init(log.Writer{})
 	d, _ := time.Parse("20060102", "20180101")
 	searchCriteria := domain.SearchCriteria{Radius: 5, Zipcode: "60523", H1FiledAfter: d, MinimumPay: 150000}
 	b.ResetTimer()

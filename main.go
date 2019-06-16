@@ -2,20 +2,22 @@ package main
 
 import (
 	_ "net/http/pprof"
+	"runtime"
 
-	"github.com/kdamarla/empnearme/buntdb"
 	"github.com/kdamarla/empnearme/http"
 	logWriter "github.com/kdamarla/empnearme/log"
+	"github.com/kdamarla/empnearme/store"
 )
 
-const dbFileName = "data.db"
+const dbFileName = "data.gob"
 
 func main() {
 
+	runtime.GOMAXPROCS(1)
+
 	logWriter.Init()
 	logger := logWriter.Writer{}
-	repo := buntdb.Init(logger, dbFileName)
-	defer repo.Close()
+	repo := store.Init(logger)
 
 	logger.Info("db is open")
 
