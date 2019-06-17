@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	domain "github.com/kdamarla/empnearme/domain"
-	log "github.com/kdamarla/empnearme/log"
+	domain "github.com/kk3399/empnearme/domain"
+	log "github.com/kk3399/empnearme/log"
 )
 
 const testingdbFileName = "C:\\Users\\kdamarla\\go\\src\\github.com\\kdamarla\\empnearme\\data.db"

@@ -9,10 +9,9 @@ import (
 	"strings"
 	"time"
 
+	domain "github.com/kk3399/empnearme/domain"
+	logWriter "github.com/kk3399/empnearme/log"
 	"golang.org/x/crypto/acme/autocert"
-
-	domain "github.com/kdamarla/empnearme/domain"
-	logWriter "github.com/kdamarla/empnearme/log"
 )
 
 const (

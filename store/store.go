@@ -7,13 +7,14 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"path"
 	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
-	domain "github.com/kdamarla/empnearme/domain"
-	log "github.com/kdamarla/empnearme/log"
+	domain "github.com/kk3399/empnearme/domain"
+	log "github.com/kk3399/empnearme/log"
 )
 
 //LcaRepo - data infrastructure
@@ -112,7 +113,7 @@ func readGob(filePath string, object interface{}) error {
 func (lcaRepo LcaRepo) loadStore() {
 	loadZipCodesIfNeeded()
 
-	for year := time.Now().Year(); year >= 2013; year-- {
+	for year := time.Now().Year(); year >= 2019; year-- {
 		lcaRepo.loadYear(year)
 	}
 
@@ -240,12 +241,13 @@ func (lcaRepo LcaRepo) add(lca domain.Lca) error {
 func (lcaRepo LcaRepo) loadYear(year int) error {
 
 	lcaRepo.log.Info(fmt.Sprintf("start: %d", year))
-	fileName := "data/" + strconv.Itoa(year) + ".csv"
+	fileName := path.Join("data", strconv.Itoa(year)+".csv")
 	/*
 		1-year	2-case_number	3-case_status	4-submit_date	5-decision_date	6-start_date	7-end_date	8-employer_name	9-employer_address
 		10-employer_city	11-employer_state	12-employer_zip	13-job_title	14-naics_code	15-total_workers	16-full_time	17-wage_rate
 		18-wage_unit	19-wage_level	20-h1b_dependent	21-willful_voilator	22-work_location_city	23-work_location_state	24-work_location_zip
 	*/
+
 	f, err := os.Open(fileName)
 	if err != nil {
 		return err
