@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://use.fontawesome.com/104d5d81ec.js"></script>
+  </head>
+  <body>
+
+    <nav>
+        <div class="nav-wrapper">
+            <a href="#" class="brand-logo">Logo</a>
+        </div>
+    </nav>
+    
+    <div class="fixed-action-btn">
+            <a class="btn-floating btn-large red">
+              <i class="large material-icons">share</i>
+            </a>
+            <ul>
+              <li><a class="btn-floating facebook-icon" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=https%3A//medium.com/%40swarnakishore/deploying-angular-cli-project-to-github-pages-db49246598a1"><span class="fa fa-facebook"></span></a></li>
+              <li><a class="btn-floating twitter-icon" target = "_blank" href="https://twitter.com/home?status=Check%20out%20article%20https%3A//medium.com/%40swarnakishore/deploying-angular-cli-project-to-github-pages-db49246598a1%20via%20%40Swarna_Kishoree"><span class="fa fa-twitter"></span></a></li>
+            </ul>
+    </div>
+
+
+    <div class="container">
+        <div class="row">
+            <div class="input-field col s4">
+                <select onchange="onSearcByCriteriaChange(value)"> 
+                    <option value="Location">Location</option>
+                    <option value="Employer">Employer</option>
+                </select>
+                <label>Search By</label>
+            </div>
+            <div id="miles_from_div" class="input-field col s4">
+                <input id="miles_from" type="text" class="validate"  required="" aria-required="true" oninput="onMilesFromInput(miles_from.value)">
+                <label for="miles_from"><span class="required-field">*</span>Miles From</label>
+                <span class="helper-text" data-error="Please enter miles from"></span>
+            </div>
+            <div id="zip_code_div" class="input-field col s4">
+                <input id="zip_code" type="number" class="validate" required="" aria-required="true"  oninput="onZipCodeInput(zip_code.value)">
+                <label for="zip_code"><span class="required-field">*</span>Zip Code</label>
+                <span class="helper-text" data-error="Please enter zip code"></span>
+            </div>
+            <div id="employer_div" class="input-field col s4 hide">
+                <input id="employer_name" type="text" class="validate"  required="" aria-required="true" oninput="onEmployerInput(employer_name.value)">
+                <label for="employer_name"><span class="required-field">*</span>Enter Employer Name</label>
+                <span class="helper-text" data-error="Please enter employer name"></span>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col s6">
+                <form action="#">
+                    <p>Salary Range</p>
+                    <p class="range-field">
+                        <input type="range" id="salary_range" min="0" max="100" onchange="onSalaryRangeInput(salary_range.value)">
+                    </p>
+                </form>
+            </div>
+            <div class="input-field col s4">
+                <input id="job_title" type="text" class="validate" oninput="onJobTitleInput(job_title.value)">
+                <label for="job_title">Job Title</label>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="switch col s4">
+                <label>
+                    Off
+                    <input type="checkbox" id="switch_1" onchange="onSwitch(switch_1.value)">
+                    <span class="lever"></span>
+                    On
+                </label>
+            </div>
+            <div class="switch col s4">
+                <label>
+                    Off
+                    <input type="checkbox" id="switch_2">
+                    <span class="lever"></span>
+                    On
+                </label>
+            </div>
+            <div class="switch col s4">
+                <label>
+                    Off
+                    <input type="checkbox" id="switch_3">
+                    <span class="lever"></span>
+                    On
+                </label>
+            </div>
+        </div>
+
+        <div class="row center-align search-btn">
+            <button class="btn waves-effect waves-light" type="submit" name="action" onclick="onSubmit()">Search
+                <i class="material-icons right">send</i>
+            </button>
+        </div>
+
+        <!--table-->
+        <table class="responsive-table highlight">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Item Name</th>
+                    <th>Item Price</th>
+                    <th>Test</th>
+                </tr>
+            </thead>
+        
+            <tbody>
+                <tr class="modal-trigger" data-target="modal1">
+                    <td>Alvin</td>
+                    <td>Eclair</td>
+                    <td>$0.87</td>
+                    <td>$0.87</td>
+                </tr>
+                <tr>
+                    <td>Alan</td>
+                    <td>Jellybean</td>
+                    <td>$3.76</td>
+                    <td>$3.76</td>
+                </tr>
+                <tr>
+                    <td>Jonathan</td>
+                    <td>Lollipop</td>
+                    <td>$7.00</td>
+                    <td>$7.00</td>
+                </tr>
+                <tr>
+                    <td>Alan</td>
+                    <td>Jellybean</td>
+                    <td>$3.76</td>
+                    <td>$3.76</td>
+                </tr>
+                <tr>
+                    <td>Jonathan</td>
+                    <td>Lollipop</td>
+                    <td>$7.00</td>
+                    <td>$7.00</td>
+                </tr>
+            </tbody>
+        </table>
+    
+        <ul class="pagination center-align">
+            <li class="disabled"><a href="#!"><i class="material-icons">chevron_left</i></a></li>
+            <li class="active"><a href="#!">1</a></li>
+            <li class="waves-effect"><a href="#!">2</a></li>
+            <li class="waves-effect"><a href="#!">3</a></li>
+            <li class="waves-effect"><a href="#!">4</a></li>
+            <li class="waves-effect"><a href="#!">5</a></li>
+            <li class="waves-effect"><a href="#!"><i class="material-icons">chevron_right</i></a></li>
+        </ul>
+    </div>
+
+    <!-- Modal Structure -->
+    <div id="modal1" class="modal">
+        <div class="modal-content">
+        <h4>Modal Header</h4>
+        <p>A bunch of text</p>
+        </div>
+        <div class="modal-footer">
+        <a href="#!" class="modal-close waves-effect waves-green btn-flat">Agree</a>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <script src="./script.js">    </script>
+  </body>
+</html>

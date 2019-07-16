@@ -60,7 +60,7 @@ func Init(log log.Writer) LcaRepo {
 		}
 		lcaRepo.loadStore()
 		cleanTempMaps()
-		lcaRepo.save()
+		//lcaRepo.save()
 		runtime.GC()
 		log.Info("DONE initializing databases: ")
 	} else {
@@ -113,7 +113,7 @@ func readGob(filePath string, object interface{}) error {
 func (lcaRepo LcaRepo) loadStore() {
 	loadZipCodesIfNeeded()
 
-	for year := time.Now().Year(); year >= 2019; year-- {
+	for year := time.Now().Year(); year >= 2013; year-- {
 		lcaRepo.loadYear(year)
 	}
 

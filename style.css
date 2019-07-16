@@ -1,0 +1,38 @@
+#job_title {
+    position: relative;
+    top: 8px;
+}
+
+table {
+  border: solid 1px #aaa !important;
+}
+
+.search-btn {
+    margin-top: 5%;
+    margin-bottom: 5% !important;
+}
+
+.required-field {
+    color: red;
+    font-weight: bold;
+}
+
+.hide {
+    display: none;
+}
+
+table {
+    cursor: pointer;
+}
+
+nav {
+    margin-bottom: 5%;
+}
+
+.facebook-icon {
+    background-color: #3b5998 !important;
+}
+
+.twitter-icon {
+    background-color: #00abe3 !important;
+}

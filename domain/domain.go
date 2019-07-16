@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"strings"
 	"time"
 )
 
@@ -61,5 +60,5 @@ func (lca Lca) H1FiledAfter(after time.Time) bool {
 }
 
 func (lca Lca) EmployerNamed(employer string) bool {
-	return strings.Contains(lca.Employer_name_lower, employer)
+	return lca.Employer_name_lower == employer
 }
