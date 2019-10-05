@@ -166,14 +166,14 @@
             </tbody>
         </table>
     
-        <ul class="pagination center-align">
-            <li class="disabled"><a href="#!"><i class="material-icons">chevron_left</i></a></li>
+        <ul id="paginator" class="pagination center-align">
+            <li id='left' class="disabled"><a href="#!"><i class="material-icons">chevron_left</i></a></li>
             <li class="active"><a href="#!">1</a></li>
             <li class="waves-effect"><a href="#!">2</a></li>
             <li class="waves-effect"><a href="#!">3</a></li>
             <li class="waves-effect"><a href="#!">4</a></li>
             <li class="waves-effect"><a href="#!">5</a></li>
-            <li class="waves-effect"><a href="#!"><i class="material-icons">chevron_right</i></a></li>
+            
         </ul>
     </div>
 
@@ -191,6 +191,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
     <script>
+        var g_lcaData = []
+        var g_pageNumber = 1
+        var g_pageRows = 15
+        var g_pagingLimit = 10
+
         $(document).ready(function(){
                 $('select').formSelect();
                 $('.modal').modal();
@@ -199,6 +204,65 @@
                     $('input.autocomplete').autocomplete({d});
                 });
             });
+
+            $('#table-list').hide();
+            $('#paginator').hide()
+
+            function showData(){
+                if (g_lcaData.length == 0)
+                {
+                    $('#table-list').hide();
+                    $('#paginator').hide()
+
+                    return
+                }
+                buildPaging()
+                $('#table-list').show();
+                $('#paginator').show()
+
+                showPageData()
+
+            }
+
+            function showPageData(){
+                var tableRowsHtml = '<thead><tr><th>Employer</th><th>Job</th><th>Date</th><th>Salary</th><th>Location</th></tr></thead><tbody>'
+                var l = g_lcaData.length
+                if (l > g_pageRows * g_pageNumber) {
+                    l = g_pageRows * g_pageNumber;
+                }
+                var i = (g_pageNumber - 1) * g_pageRows
+                for (; i<l; i++){
+                    tableRowsHtml = tableRowsHtml+ '<tr><td>'+ g_lcaData[i].Employer_name +'</td><td>'
+                        + g_lcaData[i].Job_title + '</td><td>'+ g_lcaData[i].Start_date.split('T')[0]+'</td><td>'
+                        +g_lcaData[i].Wage_rate+'</td><td>' +g_lcaData[i].Employer_city+', '+g_lcaData[i].Employer_state+'</td></tr>'
+                }
+                tableRowsHtml = tableRowsHtml + '</tbody>'
+                $('#table-list').html(tableRowsHtml);
+
+            }
+            function changePage(num){
+                g_pageNumber = num
+                buildPaging()
+                showPageData()
+            }
+
+            function buildPaging(){
+                var pages = g_lcaData.length/g_pageRows
+                if (g_lcaData.length%g_pageRows != 0){
+                    pages++
+                }
+                var showUntil = g_pageNumber + g_pagingLimit
+                if (showUntil > pages){
+                    showUntil = pages
+                }
+                var pagingHtml = '<li id="left" class="' +(g_pageNumber == 1 ? "disabled" : "")+ '"><a href="#!" onclick="changePage('+ (g_pageNumber-1) +'); return false;"<i class="material-icons">chevron_left</i></a></li>'
+                for (var i=g_pageNumber;i<=showUntil;i++)
+                {
+                    pagingHtml = pagingHtml + '<li class="waves-effect" class="' +(i == g_pageNumber ? "active" : "")+ '"><a href="#!" onclick="changePage('+i+'); return false;">'+ i +'</a></li>'
+                }
+                pagingHtml = pagingHtml + '<li id="right" class="waves-effect" class="' +(g_pageNumber == pages ? "disabled" : "")+ '"><a href="#!" onclick="changePage('+ g_pageNumber+1 +'); return false;"><i class="material-icons">chevron_right</i></a></li>'
+                $('#paginator').html(pagingHtml)
+            }
 
             function onSearcByCriteriaChange(value) {
                 var employerElement = document.getElementById("employer_div");
@@ -209,6 +273,29 @@
 
                 var zipCodeElement = document.getElementById("zip_code_div");
                 zipCodeElement.classList.toggle("hide");
+            }
+
+            function onSubmit() {
+                //get url and hit /lca with r z or e
+
+                var employerElement = document.getElementById("employer_name");
+                var emp = employerElement.value;
+
+                var milesFromElement = document.getElementById("miles_from");
+                var miles = milesFromElement.value;
+
+                var zipCodeElement = document.getElementById("zip_code");
+                var zip = zipCodeElement.value;
+
+                $.get( "/lca?e="+emp+"&r="+miles+"&z="+zip, function(d) {
+                    if (!d || d.length == 0)
+                     return;
+
+                     g_lcaData = d;
+                     g_pageNumber = 1
+                    showData()
+                });
+
             }
 
             function onEmployerInput(employer) {
@@ -233,34 +320,6 @@
 
             function onSwitch(value) {
                 console.log(value);
-            }
-
-            function onSubmit() {
-                //get url and hit /lca with r z or e
-
-                var employerElement = document.getElementById("employer_name");
-                var emp = employerElement.value;
-
-                var milesFromElement = document.getElementById("miles_from");
-                var miles = milesFromElement.value;
-
-                var zipCodeElement = document.getElementById("zip_code");
-                var zip = zipCodeElement.value;
-
-                $.get( "/lca?e="+emp+"&r="+miles+"&z="+zip, function( d ) {
-                    if (!d) return;
-                    
-                    var tableRowsHtml = ''
-                    var l = d.length
-                    if (l > 10) l = 10;
-                    for (var i=0; i<l; i++){
-                        tableRowsHtml = tableRowsHtml+ '<tr><td>'+ d[i].Employer_name +'</td><td>'
-                            + d[i].Job_title + '</td><td>'+ d[i].Start_date.split('T')[0]+'</td><td>'+d[i].Wage_rate+'</td><td>'
-                                +d[i].Employer_city+', '+d[i].Employer_state+'</td></tr>'
-                    }
-                    $('#table-list > tbody:last-child').append(tableRowsHtml);
-                });
-
             }
     </script>
   </body>

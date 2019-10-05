@@ -119,7 +119,7 @@ func (staticHandler StaticHandler) ServeHTTP(res http.ResponseWriter, req *http.
 func (empListHandler EmpListHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", "application/json")
 	res.WriteHeader(http.StatusOK)
-	json.NewEncoder(res).Encode(lcas)
+	json.NewEncoder(res).Encode(empListHandler.LcaRepo.GetEmployerNames())
 }
 
 func (lcaHandler LcaHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {

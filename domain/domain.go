@@ -39,6 +39,7 @@ type Lca struct {
 //LcaRepo handles read/write to database
 type LcaRepo interface {
 	Get(searchCriteria SearchCriteria) ([]Lca, error)
+	GetEmployerNames() map[string]int
 }
 
 //SearchCriteria for search

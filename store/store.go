@@ -140,7 +140,8 @@ func (lcaRepo LcaRepo) loadStore() {
 	}
 }
 
-func (lcaRepo LcaRepo) GetEmpNames() map[string]int {
+//GetEmpNames to return employe names for autocomplete
+func (lcaRepo LcaRepo) GetEmployerNames() map[string]int {
 	r := make(map[string]int)
 	for k, v := range lcaRepo.store.EmployerCases {
 		r[k] = len(v)
