@@ -8,7 +8,6 @@ import (
 	"math"
 	"os"
 	"path"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -61,7 +60,7 @@ func Init(log log.Writer) LcaRepo {
 		lcaRepo.loadStore()
 		cleanTempMaps()
 		//lcaRepo.save()
-		runtime.GC()
+		//runtime.GC()
 		log.Info("DONE initializing databases: ")
 	} else {
 		log.Info("opening db file")
@@ -139,6 +138,14 @@ func (lcaRepo LcaRepo) loadStore() {
 			}
 		}
 	}
+}
+
+func (lcaRepo LcaRepo) GetEmpNames() map[string]int {
+	r := make(map[string]int)
+	for k, v := range lcaRepo.store.EmployerCases {
+		r[k] = len(v)
+	}
+	return r
 }
 
 //Get lcas

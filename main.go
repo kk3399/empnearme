@@ -32,7 +32,8 @@ func main() {
 	logger.Info("db is open")
 
 	lcaHandler := http.LcaHandler{LcaRepo: repo, Log: logger}
-	httpHandler := http.Handler{LcaHandler: lcaHandler}
+	empListHandler := http.EmpListHandler{LcaRepo: repo}
+	httpHandler := http.Handler{LcaHandler: lcaHandler, EmpListHandler: empListHandler}
 	httpHandler.StartProfiling()
 	logger.Write(http.Serve(httpHandler))
 }

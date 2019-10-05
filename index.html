@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
   <head>
+      <title>H1b Employer Search</title>
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -16,13 +17,16 @@
             top: 8px;
         }
 
+        .input-width {
+            width: 20%;
+        }
+
         table {
         border: solid 1px #aaa !important;
         }
 
         .search-btn {
-            margin-top: 5%;
-            margin-bottom: 5% !important;
+            margin-top: 2.5%;
         }
 
         .required-field {
@@ -72,27 +76,33 @@
 
     <div class="container">
         <div class="row">
-            <div class="input-field col s4">
+            <div class="input-field col s3 input-width">
                 <select onchange="onSearcByCriteriaChange(value)"> 
                     <option value="Location">Location</option>
                     <option value="Employer">Employer</option>
                 </select>
                 <label>Search By</label>
             </div>
-            <div id="miles_from_div" class="input-field col s4">
+            <div id="miles_from_div" class="input-field col s3 input-width">
                 <input id="miles_from" type="text" class="validate"  required="" aria-required="true" oninput="onMilesFromInput(miles_from.value)">
                 <label for="miles_from"><span class="required-field">*</span>Miles From</label>
                 <span class="helper-text" data-error="Please enter miles"></span>
             </div>
-            <div id="zip_code_div" class="input-field col s4">
+            <div id="zip_code_div" class="input-field col s3 input-width">
                 <input id="zip_code" type="number" class="validate" required="" aria-required="true"  oninput="onZipCodeInput(zip_code.value)">
                 <label for="zip_code"><span class="required-field">*</span>Zip Code</label>
                 <span class="helper-text" data-error="Please enter zip code"></span>
             </div>
-            <div id="employer_div" class="input-field col s4 hide">
-                <input id="employer_name" type="text" class="validate"  required="" aria-required="true" oninput="onEmployerInput(employer_name.value)">
+            <div id="employer_div" class="input-field col s3 hide input-width">
+                <input id="employer_name" type="text" class="validate autocomplete" required="" aria-required="true" oninput="onEmployerInput(employer_name.value)">
                 <label for="employer_name"><span class="required-field">*</span>Enter Employer Name</label>
                 <span class="helper-text" data-error="Please enter employer name"></span>
+            </div>
+
+            <div class=" center-align search-btn col s3">
+                <button class="btn waves-effect waves-light" type="submit" name="action" onclick="onSubmit()">Search
+                    <i class="material-icons right">send</i>
+                </button>
             </div>
         </div>
 
@@ -138,54 +148,21 @@
             </div>
         </div> -->
 
-        <div class="row center-align search-btn">
-            <button class="btn waves-effect waves-light" type="submit" name="action" onclick="onSubmit()">Search
-                <i class="material-icons right">send</i>
-            </button>
-        </div>
-
         <!--table-->
-        <table class="responsive-table highlight">
+        <table id='table-list' class="responsive-table highlight">
             <thead>
                 <tr>
-                    <th>Name</th>
-                    <th>Item Name</th>
-                    <th>Item Price</th>
-                    <th>Test</th>
+                    <th>Employer</th>
+                    <th>Job</th>
+                    <th>Date</th>
+                    <th>Salary</th>
+                    <th>Location</th>
                 </tr>
             </thead>
         
             <tbody>
-                <tr class="modal-trigger" data-target="modal1">
-                    <td>Alvin</td>
-                    <td>Eclair</td>
-                    <td>$0.87</td>
-                    <td>$0.87</td>
-                </tr>
-                <tr>
-                    <td>Alan</td>
-                    <td>Jellybean</td>
-                    <td>$3.76</td>
-                    <td>$3.76</td>
-                </tr>
-                <tr>
-                    <td>Jonathan</td>
-                    <td>Lollipop</td>
-                    <td>$7.00</td>
-                    <td>$7.00</td>
-                </tr>
-                <tr>
-                    <td>Alan</td>
-                    <td>Jellybean</td>
-                    <td>$3.76</td>
-                    <td>$3.76</td>
-                </tr>
-                <tr>
-                    <td>Jonathan</td>
-                    <td>Lollipop</td>
-                    <td>$7.00</td>
-                    <td>$7.00</td>
-                </tr>
+                <!-- <tr class="modal-trigger" data-target="modal1"> -->
+                
             </tbody>
         </table>
     
@@ -218,10 +195,12 @@
                 $('select').formSelect();
                 $('.modal').modal();
                 $('.fixed-action-btn').floatingActionButton();
+                $.get( "/emps", function(d) {
+                    $('input.autocomplete').autocomplete({d});
+                });
             });
 
             function onSearcByCriteriaChange(value) {
-                console.log(value);
                 var employerElement = document.getElementById("employer_div");
                 employerElement.classList.toggle("hide");
 
@@ -257,6 +236,30 @@
             }
 
             function onSubmit() {
+                //get url and hit /lca with r z or e
+
+                var employerElement = document.getElementById("employer_name");
+                var emp = employerElement.value;
+
+                var milesFromElement = document.getElementById("miles_from");
+                var miles = milesFromElement.value;
+
+                var zipCodeElement = document.getElementById("zip_code");
+                var zip = zipCodeElement.value;
+
+                $.get( "/lca?e="+emp+"&r="+miles+"&z="+zip, function( d ) {
+                    if (!d) return;
+                    
+                    var tableRowsHtml = ''
+                    var l = d.length
+                    if (l > 10) l = 10;
+                    for (var i=0; i<l; i++){
+                        tableRowsHtml = tableRowsHtml+ '<tr><td>'+ d[i].Employer_name +'</td><td>'
+                            + d[i].Job_title + '</td><td>'+ d[i].Start_date.split('T')[0]+'</td><td>'+d[i].Wage_rate+'</td><td>'
+                                +d[i].Employer_city+', '+d[i].Employer_state+'</td></tr>'
+                    }
+                    $('#table-list > tbody:last-child').append(tableRowsHtml);
+                });
 
             }
     </script>

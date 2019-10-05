@@ -2,6 +2,7 @@ package http
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"html/template"
 	"net/http"
 	"path"
@@ -27,11 +28,15 @@ type LcaHandler struct {
 }
 
 type StaticHandler struct{}
+type EmpListHandler struct {
+	LcaRepo domain.LcaRepo
+}
 
 //Handler for all incoming http requests
 type Handler struct {
-	LcaHandler    LcaHandler
-	StaticHandler StaticHandler
+	LcaHandler     LcaHandler
+	StaticHandler  StaticHandler
+	EmpListHandler EmpListHandler
 }
 
 //Serve http at predecided port
@@ -69,7 +74,7 @@ func Serve(handler Handler) error {
 	srv.Handler = handler
 
 	//http.Handle("/lca", handler.LcaHandler)
-	http.Handle("/", http.FileServer(http.Dir("./static")))
+	//http.Handle("/", http.FileServer(http.Dir("./static")))
 
 	return srv.ListenAndServe()
 	//http.ListenAndServe(":8080", handler)
@@ -94,9 +99,11 @@ func (h Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	var head string
 
 	head, req.URL.Path = shiftPath(req.URL.Path)
-	if head == "lca" { //todo: can make this controller the default if we only do one endpoint?
+	if head == "lca" {
 		h.LcaHandler.ServeHTTP(res, req)
 		return
+	} else if head == "emps" {
+		h.EmpListHandler.ServeHTTP(res, req)
 	} else {
 		h.StaticHandler.ServeHTTP(res, req)
 	}
@@ -107,6 +114,12 @@ func (h Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 func (staticHandler StaticHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	//http.ServeFile(res, req, req.URL.Path[1:])
 	http.ServeFile(res, req, "index.html")
+}
+
+func (empListHandler EmpListHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusOK)
+	json.NewEncoder(res).Encode(lcas)
 }
 
 func (lcaHandler LcaHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
@@ -125,13 +138,11 @@ func (lcaHandler LcaHandler) ServeHTTP(res http.ResponseWriter, req *http.Reques
 		lcaHandler.Log.Write(err)
 	}
 
-	//i think we need a vue js site served from server
-	//res.Header().Set("Content-Type", "application/json")
-	//res.WriteHeader(http.StatusOK)
-	//todo - use html\template and render HTML on server side
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusOK)
+	json.NewEncoder(res).Encode(lcas)
+	//templates.ExecuteTemplate(res, "list.html", lcas)
 
-	templates.ExecuteTemplate(res, "list.html", lcas)
-	//json.NewEncoder(res).Encode(lcas)
 }
 
 // shiftPath splits off the first component of p, which will be cleaned of
