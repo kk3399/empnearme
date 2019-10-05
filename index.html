@@ -5,16 +5,57 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-    <link rel="stylesheet" href="./style.css">
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <script src="https://use.fontawesome.com/104d5d81ec.js"></script>
   </head>
+  <style>
+      #job_title {
+            position: relative;
+            top: 8px;
+        }
+
+        table {
+        border: solid 1px #aaa !important;
+        }
+
+        .search-btn {
+            margin-top: 5%;
+            margin-bottom: 5% !important;
+        }
+
+        .required-field {
+            color: red;
+            font-weight: bold;
+        }
+
+        .hide {
+            display: none;
+        }
+
+        table {
+            cursor: pointer;
+        }
+
+        nav {
+            margin-bottom: 5%;
+        }
+
+        .facebook-icon {
+            background-color: #3b5998 !important;
+        }
+
+        .twitter-icon {
+            background-color: #00abe3 !important;
+        }
+
+  </style>
   <body>
 
     <nav>
         <div class="nav-wrapper">
-            <a href="#" class="brand-logo">Logo</a>
+            <a href="#" class="brand-logo">H1b Employer Search</a>
         </div>
     </nav>
     
@@ -41,7 +82,7 @@
             <div id="miles_from_div" class="input-field col s4">
                 <input id="miles_from" type="text" class="validate"  required="" aria-required="true" oninput="onMilesFromInput(miles_from.value)">
                 <label for="miles_from"><span class="required-field">*</span>Miles From</label>
-                <span class="helper-text" data-error="Please enter miles from"></span>
+                <span class="helper-text" data-error="Please enter miles"></span>
             </div>
             <div id="zip_code_div" class="input-field col s4">
                 <input id="zip_code" type="number" class="validate" required="" aria-required="true"  oninput="onZipCodeInput(zip_code.value)">
@@ -55,7 +96,7 @@
             </div>
         </div>
 
-        <div class="row">
+        <!-- <div class="row">
             <div class="col s6">
                 <form action="#">
                     <p>Salary Range</p>
@@ -68,9 +109,9 @@
                 <input id="job_title" type="text" class="validate" oninput="onJobTitleInput(job_title.value)">
                 <label for="job_title">Job Title</label>
             </div>
-        </div>
+        </div> -->
 
-        <div class="row">
+        <!-- <div class="row">
             <div class="switch col s4">
                 <label>
                     Off
@@ -95,7 +136,7 @@
                     On
                 </label>
             </div>
-        </div>
+        </div> -->
 
         <div class="row center-align search-btn">
             <button class="btn waves-effect waves-light" type="submit" name="action" onclick="onSubmit()">Search
@@ -172,6 +213,52 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
-    <script src="./script.js">    </script>
+    <script>
+        $(document).ready(function(){
+                $('select').formSelect();
+                $('.modal').modal();
+                $('.fixed-action-btn').floatingActionButton();
+            });
+
+            function onSearcByCriteriaChange(value) {
+                console.log(value);
+                var employerElement = document.getElementById("employer_div");
+                employerElement.classList.toggle("hide");
+
+                var milesFromElement = document.getElementById("miles_from_div");
+                milesFromElement.classList.toggle("hide");
+
+                var zipCodeElement = document.getElementById("zip_code_div");
+                zipCodeElement.classList.toggle("hide");
+            }
+
+            function onEmployerInput(employer) {
+                console.log(employer);
+            }
+
+            function onMilesFromInput(miles) {
+                console.log(miles);
+            }
+
+            function onZipCodeInput(zipCode) {
+                console.log(zipCode);
+            }
+
+            function onSalaryRangeInput(range) {
+                console.log(range);
+            }
+
+            function onJobTitleInput(title) {
+                console.log(title);
+            }
+
+            function onSwitch(value) {
+                console.log(value);
+            }
+
+            function onSubmit() {
+
+            }
+    </script>
   </body>
 </html>

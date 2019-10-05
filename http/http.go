@@ -26,9 +26,12 @@ type LcaHandler struct {
 	Log     logWriter.Writer
 }
 
+type StaticHandler struct{}
+
 //Handler for all incoming http requests
 type Handler struct {
-	LcaHandler LcaHandler
+	LcaHandler    LcaHandler
+	StaticHandler StaticHandler
 }
 
 //Serve http at predecided port
@@ -66,6 +69,7 @@ func Serve(handler Handler) error {
 	srv.Handler = handler
 
 	//http.Handle("/lca", handler.LcaHandler)
+	http.Handle("/", http.FileServer(http.Dir("./static")))
 
 	return srv.ListenAndServe()
 	//http.ListenAndServe(":8080", handler)
@@ -93,8 +97,16 @@ func (h Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	if head == "lca" { //todo: can make this controller the default if we only do one endpoint?
 		h.LcaHandler.ServeHTTP(res, req)
 		return
+	} else {
+		h.StaticHandler.ServeHTTP(res, req)
 	}
+
 	http.Error(res, "Not Found", http.StatusNotFound)
+}
+
+func (staticHandler StaticHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	//http.ServeFile(res, req, req.URL.Path[1:])
+	http.ServeFile(res, req, "index.html")
 }
 
 func (lcaHandler LcaHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
