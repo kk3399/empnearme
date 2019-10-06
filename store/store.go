@@ -141,10 +141,13 @@ func (lcaRepo LcaRepo) loadStore() {
 }
 
 //GetEmpNames to return employe names for autocomplete
-func (lcaRepo LcaRepo) GetEmployerNames() map[string]int {
+func (lcaRepo LcaRepo) GetEmployerNames(start string) map[string]int {
 	r := make(map[string]int)
-	for k, v := range lcaRepo.store.EmployerCases {
-		r[k] = len(v)
+	for k := range lcaRepo.store.EmployerCases {
+		if strings.Contains(k, start) {
+			r[k] = 0
+		}
+
 	}
 	return r
 }
@@ -152,7 +155,7 @@ func (lcaRepo LcaRepo) GetEmployerNames() map[string]int {
 //Get lcas
 func (lcaRepo LcaRepo) Get(searchCriteria domain.SearchCriteria) ([]domain.Lca, error) {
 
-	var filterEmployer, filterPay, filterH1Date bool
+	var filterEmployer, filterPay, filterH1Date, excludeH1Dependent, filterJobTitle bool
 	var lcas []domain.Lca
 
 	if len(searchCriteria.Employer) > 0 {
@@ -165,6 +168,14 @@ func (lcaRepo LcaRepo) Get(searchCriteria domain.SearchCriteria) ([]domain.Lca, 
 
 	if !searchCriteria.H1FiledAfter.IsZero() {
 		filterH1Date = true
+	}
+
+	if searchCriteria.ExcludeH1Dependent {
+		excludeH1Dependent = true
+	}
+
+	if len(searchCriteria.JobTitle) > 0 {
+		filterJobTitle = true
 	}
 
 	if len(searchCriteria.Zipcode) > 0 {
@@ -193,9 +204,15 @@ func (lcaRepo LcaRepo) Get(searchCriteria domain.SearchCriteria) ([]domain.Lca, 
 			lca := lcaRepo.store.Cases[casenum]
 			if (!filterEmployer || lca.EmployerNamed(searchCriteria.Employer)) &&
 				(!filterPay || lca.PayMoreThan(searchCriteria.MinimumPay)) &&
-				(!filterH1Date || lca.H1FiledAfter(searchCriteria.H1FiledAfter)) {
+				(!filterH1Date || lca.H1FiledAfter(searchCriteria.H1FiledAfter)) &&
+					(!excludeH1Dependent || lca.H1b_dependent == "N") &&
+					(!filterJobTitle || lca.HasJobTitle(searchCriteria.JobTitle))) {
 				lcas = append(lcas, lca)
 			}
+		}
+
+		if len(lcas) > 1000 {
+			return lcas[:1000], nil
 		}
 		return lcas, nil
 	}
@@ -204,7 +221,9 @@ func (lcaRepo LcaRepo) Get(searchCriteria domain.SearchCriteria) ([]domain.Lca, 
 		for _, casenum := range lcaRepo.store.EmployerCases[searchCriteria.Employer] {
 			lca := lcaRepo.store.Cases[casenum]
 			if (!filterPay || lca.PayMoreThan(searchCriteria.MinimumPay)) &&
-				(!filterH1Date || lca.H1FiledAfter(searchCriteria.H1FiledAfter)) {
+				(!filterH1Date || lca.H1FiledAfter(searchCriteria.H1FiledAfter)) &&
+					(!excludeH1Dependent || lca.H1b_dependent == "N") && 
+					(!filterJobTitle || lca.HasJobTitle(searchCriteria.JobTitle)) {
 				lcas = append(lcas, lca)
 			}
 		}

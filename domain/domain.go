@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"strings"
 	"time"
 )
 
@@ -39,7 +40,7 @@ type Lca struct {
 //LcaRepo handles read/write to database
 type LcaRepo interface {
 	Get(searchCriteria SearchCriteria) ([]Lca, error)
-	GetEmployerNames() map[string]int
+	GetEmployerNames(has string) map[string]int
 }
 
 //SearchCriteria for search
@@ -50,6 +51,7 @@ type SearchCriteria struct {
 	MinimumPay         int
 	ExcludeH1Dependent bool
 	H1FiledAfter       time.Time
+	JobTitle           string
 }
 
 func (lca Lca) PayMoreThan(pay int) bool {
@@ -62,4 +64,8 @@ func (lca Lca) H1FiledAfter(after time.Time) bool {
 
 func (lca Lca) EmployerNamed(employer string) bool {
 	return lca.Employer_name_lower == employer
+}
+
+func (lca Lca) HasJobTitle(jobTile string) bool {
+	return strings.Contains(lca.Job_title, jobTile)
 }

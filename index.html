@@ -106,20 +106,35 @@
             </div>
         </div>
 
-        <!-- <div class="row">
-            <div class="col s6">
+        <div class="row">
+            <div class="col s3">
                 <form action="#">
-                    <p>Salary Range</p>
+                    <p>Salary Greater Than</p>
                     <p class="range-field">
-                        <input type="range" id="salary_range" min="0" max="100" onchange="onSalaryRangeInput(salary_range.value)">
+                        <input type="range" id="salary" min="60" max="500" onchange="onSalaryInput(salary.value)">
                     </p>
                 </form>
             </div>
-            <div class="input-field col s4">
+            <div class="col s3">
+                    <form action="#">
+                        <p>Year After</p>
+                        <p class="range-field">
+                            <input type="range" id="year" min="2010" max="2019" onchange="onYearInput(year.value)">
+                        </p>
+                    </form>
+                </div>
+            <div class="input-field col s2">
                 <input id="job_title" type="text" class="validate" oninput="onJobTitleInput(job_title.value)">
                 <label for="job_title">Job Title</label>
             </div>
-        </div> -->
+            <div class="switch col s2">
+                    <label>
+                        Exclude H1 Dependent
+                        <input type="checkbox" id="switch_1" onchange="onSwitch(switch_1.value)">
+                        <span class="lever"></span>
+                    </label>
+                </div>
+        </div>
 
         <!-- <div class="row">
             <div class="switch col s4">
@@ -195,14 +210,12 @@
         var g_pageNumber = 1
         var g_pageRows = 15
         var g_pagingLimit = 10
+        var g_isAutoCompleteInProgress = false
 
         $(document).ready(function(){
                 $('select').formSelect();
                 $('.modal').modal();
                 $('.fixed-action-btn').floatingActionButton();
-                $.get( "/emps", function(d) {
-                    $('input.autocomplete').autocomplete({d});
-                });
             });
 
             $('#table-list').hide();
@@ -260,18 +273,23 @@
                 {
                     pagingHtml = pagingHtml + '<li class="waves-effect" class="' +(i == g_pageNumber ? "active" : "")+ '"><a href="#!" onclick="changePage('+i+'); return false;">'+ i +'</a></li>'
                 }
-                pagingHtml = pagingHtml + '<li id="right" class="waves-effect" class="' +(g_pageNumber == pages ? "disabled" : "")+ '"><a href="#!" onclick="changePage('+ g_pageNumber+1 +'); return false;"><i class="material-icons">chevron_right</i></a></li>'
+                if (showUntil < pages) {
+                    pagingHtml = pagingHtml + '<li id="right" class="waves-effect" class="' +(g_pageNumber == pages ? "disabled" : "")+ '"><a href="#!" onclick="changePage('+ g_pageNumber+1 +'); return false;"><i class="material-icons">chevron_right</i></a></li>'
+                }
                 $('#paginator').html(pagingHtml)
             }
 
             function onSearcByCriteriaChange(value) {
                 var employerElement = document.getElementById("employer_div");
+                employerElement.value = ''
                 employerElement.classList.toggle("hide");
 
                 var milesFromElement = document.getElementById("miles_from_div");
+                milesFromElement.value = ''
                 milesFromElement.classList.toggle("hide");
 
                 var zipCodeElement = document.getElementById("zip_code_div");
+                zipCodeElement.value = ''
                 zipCodeElement.classList.toggle("hide");
             }
 
@@ -295,11 +313,35 @@
                      g_pageNumber = 1
                     showData()
                 });
-
             }
 
             function onEmployerInput(employer) {
-                console.log(employer);
+              
+            }
+
+            var typingTimer;                //timer identifier
+            var doneTypingInterval = 2000;  //time in ms, 5 second for example
+            var $input = $('#employer_name');
+            //on keyup, start the countdown
+            $input.on('keyup', function () {
+                clearTimeout(typingTimer);
+                typingTimer = setTimeout(doneTyping, doneTypingInterval);
+            });
+
+            //on keydown, clear the countdown 
+            $input.on('keydown', function () {
+                clearTimeout(typingTimer);
+            });
+
+            //user is "finished typing," do something
+            function doneTyping () {
+                var employerElement = $('#employer_name');
+                var emp = employerElement.val();
+                if(emp.length >= 0){
+                    $.get( "/emps?has="+emp, function(d) {
+                        employerElement.autocomplete({data:d});
+                    });
+                }
             }
 
             function onMilesFromInput(miles) {

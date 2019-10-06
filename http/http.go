@@ -27,7 +27,10 @@ type LcaHandler struct {
 	Log     logWriter.Writer
 }
 
+//StaticHandler handles index.html
 type StaticHandler struct{}
+
+//EmpListHandler handles auto complete request on employer names
 type EmpListHandler struct {
 	LcaRepo domain.LcaRepo
 }
@@ -101,14 +104,13 @@ func (h Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	head, req.URL.Path = shiftPath(req.URL.Path)
 	if head == "lca" {
 		h.LcaHandler.ServeHTTP(res, req)
-		return
 	} else if head == "emps" {
 		h.EmpListHandler.ServeHTTP(res, req)
 	} else {
 		h.StaticHandler.ServeHTTP(res, req)
 	}
 
-	http.Error(res, "Not Found", http.StatusNotFound)
+	//http.Error(res, "Not Found", http.StatusNotFound)
 }
 
 func (staticHandler StaticHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
@@ -117,21 +119,30 @@ func (staticHandler StaticHandler) ServeHTTP(res http.ResponseWriter, req *http.
 }
 
 func (empListHandler EmpListHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	res.Header().Set("Content-Type", "application/json")
-	res.WriteHeader(http.StatusOK)
-	json.NewEncoder(res).Encode(empListHandler.LcaRepo.GetEmployerNames())
+	p := req.URL.Query()
+	has := p.Get("has")
+	if len(has) > 4 {
+		res.Header().Set("Content-Type", "application/json")
+		res.WriteHeader(http.StatusOK)
+		json.NewEncoder(res).Encode(empListHandler.LcaRepo.GetEmployerNames(has))
+	}
 }
 
 func (lcaHandler LcaHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 
 	p := req.URL.Query()
 	zip := p.Get("z")
+	job := p.Get("j")
+	x, _ := strconv.Atoi(p.Get("x"))
 	radius, _ := strconv.Atoi(p.Get("r"))
 	emp := strings.ToLower(p.Get("e"))
 	minPay, _ := strconv.Atoi(p.Get("p"))
 	h1After, _ := time.Parse("20060102", p.Get("d"))
 
-	filter := domain.SearchCriteria{Radius: radius, Zipcode: zip, Employer: emp, MinimumPay: minPay, H1FiledAfter: h1After}
+	filter := domain.SearchCriteria{Radius: radius, Zipcode: zip, Employer: emp, MinimumPay: minPay, H1FiledAfter: h1After, JobTitle: job}
+	if x > 0 {
+		filter.ExcludeH1Dependent = true
+	}
 
 	lcas, err := lcaHandler.LcaRepo.Get(filter)
 	if err != nil {
