@@ -194,7 +194,7 @@
 
     <!-- Modal Structure -->
     <div id="modal1" class="modal">
-        <div class="modal-content">
+        <div id='modal1-content' class="modal-content">
         <h4>Modal Header</h4>
         <p>A bunch of text</p>
         </div>
@@ -245,7 +245,7 @@
                 }
                 var i = (g_pageNumber - 1) * g_pageRows
                 for (; i<l; i++){
-                    tableRowsHtml = tableRowsHtml+ '<tr><td>'+ g_lcaData[i].Employer_name +'</td><td>'
+                    tableRowsHtml = tableRowsHtml+ '<tr onclick=prepareModal('+i+'); return false; class="modal-trigger" data-target="modal1"><td>'+ g_lcaData[i].Employer_name +'</td><td>'
                         + g_lcaData[i].Job_title + '</td><td>'+ g_lcaData[i].Start_date.split('T')[0]+'</td><td>'
                         +g_lcaData[i].Wage_rate+'</td><td>' +g_lcaData[i].Employer_city+', '+g_lcaData[i].Employer_state+'</td></tr>'
                 }
@@ -253,6 +253,12 @@
                 $('#table-list').html(tableRowsHtml);
 
             }
+
+            function prepareModal(i){
+                var lca = g_lcaData[i]
+                $('#modal1-content').append(lca.Case_number)
+            }
+
             function changePage(num){
                 g_pageNumber = num
                 buildPaging()
