@@ -12,6 +12,24 @@
     <script src="https://use.fontawesome.com/104d5d81ec.js"></script>
   </head>
   <style>
+      @media only screen and (min-width: 993px)
+      {
+            .container {
+                width: 80%;
+            }
+      }
+
+      .page-footer {
+        margin-top: 2% !important;
+        color: #fff;
+        background-color: #ee6e73;
+        padding:0;
+      }
+
+     .input-width-14 {
+         width: 14% !important;
+     }
+
       #job_title {
             position: relative;
             top: 8px;
@@ -22,7 +40,16 @@
         }
 
         table {
-        border: solid 1px #aaa !important;
+            border: solid 1px #aaa !important;
+            /*cursor: pointer;*/
+        }
+
+        thead {
+            background-color: lightgray;
+        }
+
+        tbody {
+            font-size: 13px;
         }
 
         .search-btn {
@@ -38,12 +65,12 @@
             display: none;
         }
 
-        table {
-            cursor: pointer;
+        nav {
+            margin-bottom: 2%;
         }
 
-        nav {
-            margin-bottom: 5%;
+        nav .nav-wrapper {
+           margin: 0 auto;
         }
 
         .facebook-icon {
@@ -76,19 +103,28 @@
 
     <div class="container">
         <div class="row">
-            <div class="input-field col s3 input-width">
+            <div class="input-field col s3 input-width-14">
                 <select onchange="onSearcByCriteriaChange(value)"> 
                     <option value="Location">Location</option>
                     <option value="Employer">Employer</option>
                 </select>
                 <label>Search By</label>
             </div>
-            <div id="miles_from_div" class="input-field col s3 input-width">
-                <input id="miles_from" type="text" class="validate"  required="" aria-required="true" oninput="onMilesFromInput(miles_from.value)">
+            <div id="miles_from_div" class="input-field col s3 input-width-14">
+                <!-- <input id="miles_from" type="text" class="validate"  required="" aria-required="true" oninput="onMilesFromInput(miles_from.value)">
                 <label for="miles_from"><span class="required-field">*</span>Miles From</label>
-                <span class="helper-text" data-error="Please enter miles"></span>
+                <span class="helper-text" data-error="Please enter miles"></span> -->
+                <select required id="miles_from" onchange="onMilesFromInput(value)"> 
+                        <option value="5">5</option>
+                        <option value="15">25</option>
+                        <option value="15">50</option>
+                        <option value="15">75</option>
+                        <option value="15">100</option>
+                        <option value="15">125</option>
+                </select>
+                <label>Miles from</label>
             </div>
-            <div id="zip_code_div" class="input-field col s3 input-width">
+            <div id="zip_code_div" class="input-field col s3 input-width-14">
                 <input id="zip_code" type="number" class="validate" required="" aria-required="true"  oninput="onZipCodeInput(zip_code.value)">
                 <label for="zip_code"><span class="required-field">*</span>Zip Code</label>
                 <span class="helper-text" data-error="Please enter zip code"></span>
@@ -115,13 +151,26 @@
                     </p>
                 </form>
             </div>
-            <div class="col s3">
-                    <form action="#">
+            <div class="col s3 input-field input-width-14">
+                    <!-- <form action="#">
                         <p>Year After</p>
                         <p class="range-field">
                             <input type="range" id="year" min="2010" max="2019" onchange="onYearInput(year.value)">
                         </p>
-                    </form>
+                    </form> -->
+                    <select id="year" onchange="onYearInput(value)"> 
+                            <option value="2010">2010</option>
+                            <option value="2011">2011</option>
+                            <option value="2010">2012</option>
+                            <option value="2011">2013</option>
+                            <option value="2010">2014</option>
+                            <option value="2011">2015</option>
+                            <option value="2010">2016</option>
+                            <option value="2011">2017</option>
+                            <option value="2010">2018</option>
+                            <option value="2011">2019</option>
+                        </select>
+                    <label>Year After</label>
                 </div>
             <div class="input-field col s2">
                 <input id="job_title" type="text" class="validate" oninput="onJobTitleInput(job_title.value)">
@@ -166,13 +215,13 @@
         <!--table-->
         <table id='table-list' class="responsive-table highlight">
             <thead>
-                <tr>
+                <!-- <tr>
                     <th>Employer</th>
                     <th>Job</th>
                     <th>Date</th>
                     <th>Salary</th>
                     <th>Location</th>
-                </tr>
+                </tr> -->
             </thead>
         
             <tbody>
@@ -182,24 +231,29 @@
         </table>
     
         <ul id="paginator" class="pagination center-align">
-            <li id='left' class="disabled"><a href="#!"><i class="material-icons">chevron_left</i></a></li>
+            <!-- <li id='left' class="disabled"><a href="#!"><i class="material-icons">chevron_left</i></a></li>
             <li class="active"><a href="#!">1</a></li>
             <li class="waves-effect"><a href="#!">2</a></li>
             <li class="waves-effect"><a href="#!">3</a></li>
             <li class="waves-effect"><a href="#!">4</a></li>
-            <li class="waves-effect"><a href="#!">5</a></li>
+            <li class="waves-effect"><a href="#!">5</a></li> -->
             
         </ul>
     </div>
 
+    <!--footer-->
+    <footer class="page-footer">
+        <div class="footer-copyright">
+                <div class="container">© <span id="current-year"></span> All rights reserved.</div>
+        </div>
+    </footer>
+
     <!-- Modal Structure -->
     <div id="modal1" class="modal">
         <div id='modal1-content' class="modal-content">
-        <h4>Modal Header</h4>
-        <p>A bunch of text</p>
         </div>
         <div class="modal-footer">
-        <a href="#!" class="modal-close waves-effect waves-green btn-flat">Agree</a>
+        <a href="#!" class="modal-close waves-effect waves-green btn-flat">OK</a>
         </div>
     </div>
 
@@ -211,15 +265,18 @@
         var g_pageRows = 15
         var g_pagingLimit = 10
         var g_isAutoCompleteInProgress = false
+        var date = new Date()
 
         $(document).ready(function(){
                 $('select').formSelect();
                 $('.modal').modal();
                 $('.fixed-action-btn').floatingActionButton();
+                document.getElementById("current-year").innerHTML = date.getFullYear();
             });
 
             $('#table-list').hide();
-            $('#paginator').hide()
+            $('#paginator').hide();
+
 
             function showData(){
                 if (g_lcaData.length == 0)
@@ -245,7 +302,8 @@
                 }
                 var i = (g_pageNumber - 1) * g_pageRows
                 for (; i<l; i++){
-                    tableRowsHtml = tableRowsHtml+ '<tr onclick=prepareModal('+i+'); return false; class="modal-trigger" data-target="modal1"><td>'+ g_lcaData[i].Employer_name +'</td><td>'
+                     /* add this to tr tag to make it modal -  onclick="prepareModal('+i+'); return false;" class="modal-trigger" data-target="modal1">*/
+                    tableRowsHtml = tableRowsHtml+ '<tr><td>'+ g_lcaData[i].Employer_name +'</td><td>'
                         + g_lcaData[i].Job_title + '</td><td>'+ g_lcaData[i].Start_date.split('T')[0]+'</td><td>'
                         +g_lcaData[i].Wage_rate+'</td><td>' +g_lcaData[i].Employer_city+', '+g_lcaData[i].Employer_state+'</td></tr>'
                 }
@@ -256,7 +314,9 @@
 
             function prepareModal(i){
                 var lca = g_lcaData[i]
-                $('#modal1-content').append(lca.Case_number)
+                $('#modal1-content').html('<h4>'+lca.Employer_name+' '+ lca.Employer_city+', '+lca.Employer_state
+                    +'</h4><p>Job: '+lca.Job_title +(lca.Full_time=='Y'?'(full time)':'')+'</p><p>Start date: '+lca.Start_date.split('T')[0]+'</p>'
+                    +'<p>Work location: '+lca.Work_location_city+', '+ lca.Work_location_state+'</p>')
             }
 
             function changePage(num){
@@ -266,7 +326,7 @@
             }
 
             function buildPaging(){
-                var pages = g_lcaData.length/g_pageRows
+                var pages = Math.floor(g_lcaData.length/g_pageRows)
                 if (g_lcaData.length%g_pageRows != 0){
                     pages++
                 }
@@ -274,34 +334,42 @@
                 if (showUntil > pages){
                     showUntil = pages
                 }
-                var pagingHtml = '<li id="left" class="' +(g_pageNumber == 1 ? "disabled" : "")+ '"><a href="#!" onclick="changePage('+ (g_pageNumber-1) +'); return false;"<i class="material-icons">chevron_left</i></a></li>'
-                for (var i=g_pageNumber;i<=showUntil;i++)
-                {
-                    pagingHtml = pagingHtml + '<li class="waves-effect" class="' +(i == g_pageNumber ? "active" : "")+ '"><a href="#!" onclick="changePage('+i+'); return false;">'+ i +'</a></li>'
+
+                var showFrom = g_pageNumber
+                if (showFrom>pages-g_pagingLimit){
+                    showFrom = pages-g_pagingLimit
                 }
+
+                var pagingHtml = '<li id="left" class="' +(g_pageNumber <= 1 ? "hide" : "show")+ '"><a href="#!" onclick="changePage('+ (1*1) +'); return false;"<i class="material-icons">first_page</i></a></li>'
+                pagingHtml = pagingHtml + '<li id="left" class="' +(g_pageNumber == 1 ? "disabled" : "")+ '"><a href="#!" onclick="changePage('+ (g_pageNumber-1) +'); return false;"<i class="material-icons">chevron_left</i></a></li>'
+                for (var i=showFrom;i<=showUntil;i++)
+                {
+                    pagingHtml = pagingHtml + '<li class="waves-effect ' +(i == g_pageNumber ? 'active' : '')+ '"><a href="#!" onclick="changePage('+i+'); return false;">'+ i +'</a></li>'
+                }   
                 if (showUntil < pages) {
-                    pagingHtml = pagingHtml + '<li id="right" class="waves-effect" class="' +(g_pageNumber == pages ? "disabled" : "")+ '"><a href="#!" onclick="changePage('+ g_pageNumber+1 +'); return false;"><i class="material-icons">chevron_right</i></a></li>'
+                    pagingHtml = pagingHtml + '<li id="right" class="waves-effect" class="' +(g_pageNumber == pages ? "disabled" : "")+ '"><a href="#!" onclick="changePage('+ (g_pageNumber+1) +'); return false;"><i class="material-icons">chevron_right</i></a></li>'
+                    pagingHtml = pagingHtml + '<li id="right" class="waves-effect" class="' +(g_pageNumber == pages ? "hide" : "show")+ '"><a href="#!" onclick="changePage('+ (pages*1) +'); return false;"><i class="material-icons">last_page</i></a></li>'
                 }
                 $('#paginator').html(pagingHtml)
             }
 
             function onSearcByCriteriaChange(value) {
                 var employerElement = document.getElementById("employer_div");
-                employerElement.value = ''
+                $('#employer_name').val('')
                 employerElement.classList.toggle("hide");
 
                 var milesFromElement = document.getElementById("miles_from_div");
-                milesFromElement.value = ''
+                $('#miles_from').val('')
                 milesFromElement.classList.toggle("hide");
 
                 var zipCodeElement = document.getElementById("zip_code_div");
-                zipCodeElement.value = ''
+                $('#zip_code').val('')
                 zipCodeElement.classList.toggle("hide");
             }
 
             function onSubmit() {
                 //get url and hit /lca with r z or e
-
+                var q = '?'
                 var employerElement = document.getElementById("employer_name");
                 var emp = employerElement.value;
 
@@ -310,8 +378,16 @@
 
                 var zipCodeElement = document.getElementById("zip_code");
                 var zip = zipCodeElement.value;
+                
+                if (emp.length>0){
+                    q = q+'e='+emp
+                } else if(zip.length > 0){
+                    q = q+'r='+miles+'&z='+zip
+                }
 
-                $.get( "/lca?e="+emp+"&r="+miles+"&z="+zip, function(d) {
+
+
+                $.get( "/lca"+q, function(d) {
                     if (!d || d.length == 0)
                      return;
 

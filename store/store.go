@@ -140,7 +140,7 @@ func (lcaRepo LcaRepo) loadStore() {
 	}
 }
 
-//GetEmpNames to return employe names for autocomplete
+//GetEmployerNames to return employe names for autocomplete
 func (lcaRepo LcaRepo) GetEmployerNames(start string) map[string]int {
 	r := make(map[string]int)
 	for k := range lcaRepo.store.EmployerCases {
@@ -205,8 +205,8 @@ func (lcaRepo LcaRepo) Get(searchCriteria domain.SearchCriteria) ([]domain.Lca, 
 			if (!filterEmployer || lca.EmployerNamed(searchCriteria.Employer)) &&
 				(!filterPay || lca.PayMoreThan(searchCriteria.MinimumPay)) &&
 				(!filterH1Date || lca.H1FiledAfter(searchCriteria.H1FiledAfter)) &&
-					(!excludeH1Dependent || lca.H1b_dependent == "N") &&
-					(!filterJobTitle || lca.HasJobTitle(searchCriteria.JobTitle))) {
+				(!excludeH1Dependent || lca.H1b_dependent == "N") &&
+				(!filterJobTitle || lca.HasJobTitle(searchCriteria.JobTitle)) {
 				lcas = append(lcas, lca)
 			}
 		}
@@ -222,8 +222,8 @@ func (lcaRepo LcaRepo) Get(searchCriteria domain.SearchCriteria) ([]domain.Lca, 
 			lca := lcaRepo.store.Cases[casenum]
 			if (!filterPay || lca.PayMoreThan(searchCriteria.MinimumPay)) &&
 				(!filterH1Date || lca.H1FiledAfter(searchCriteria.H1FiledAfter)) &&
-					(!excludeH1Dependent || lca.H1b_dependent == "N") && 
-					(!filterJobTitle || lca.HasJobTitle(searchCriteria.JobTitle)) {
+				(!excludeH1Dependent || lca.H1b_dependent == "N") &&
+				(!filterJobTitle || lca.HasJobTitle(searchCriteria.JobTitle)) {
 				lcas = append(lcas, lca)
 			}
 		}
