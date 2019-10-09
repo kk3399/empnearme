@@ -2,7 +2,6 @@ package store
 
 import (
 	"testing"
-	"time"
 
 	domain "github.com/kk3399/empnearme/domain"
 	log "github.com/kk3399/empnearme/log"
@@ -12,8 +11,8 @@ const testingdbFileName = "C:\\Users\\kdamarla\\go\\src\\github.com\\kdamarla\\e
 
 func BenchmarkGet(b *testing.B) {
 	lcaRepo := Init(log.Writer{})
-	d, _ := time.Parse("20060102", "20180101")
-	searchCriteria := domain.SearchCriteria{Radius: 5, Zipcode: "60523", H1FiledAfter: d, MinimumPay: 150000}
+	//d, _ := time.Parse("20060102", "20180101")
+	searchCriteria := domain.SearchCriteria{Radius: 5, Zipcode: "60523", PayMin: 150000}
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		k, _ := lcaRepo.Get(searchCriteria)

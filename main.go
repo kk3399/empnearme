@@ -5,7 +5,6 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"path/filepath"
-	"runtime"
 
 	"github.com/kk3399/empnearme/http"
 	logWriter "github.com/kk3399/empnearme/log"
@@ -15,8 +14,6 @@ import (
 const dbFileName = "data.gob"
 
 func main() {
-
-	runtime.GOMAXPROCS(1)
 
 	ex, err := os.Executable()
 	if err != nil {

@@ -3,6 +3,7 @@ package http
 import (
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"net/http"
 	"path"
@@ -16,7 +17,9 @@ import (
 )
 
 const (
-	inProd = false
+	inProd    = false
+	robotsTXT = `User-agent: *
+				 Disallow: / `
 )
 
 var templates = template.Must(template.ParseFiles("templates/list.html", "templates/single.html"))
@@ -106,6 +109,11 @@ func (h Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		h.LcaHandler.ServeHTTP(res, req)
 	} else if head == "emps" {
 		h.EmpListHandler.ServeHTTP(res, req)
+	} else if head == "robots.txt" {
+		res.Header().Set("Content-Type", "text/plain")
+		res.WriteHeader(http.StatusOK)
+		fmt.Fprint(res, robotsTXT)
+
 	} else {
 		h.StaticHandler.ServeHTTP(res, req)
 	}
@@ -136,10 +144,12 @@ func (lcaHandler LcaHandler) ServeHTTP(res http.ResponseWriter, req *http.Reques
 	x, _ := strconv.Atoi(p.Get("x"))
 	radius, _ := strconv.Atoi(p.Get("r"))
 	emp := strings.ToLower(p.Get("e"))
-	minPay, _ := strconv.Atoi(p.Get("p"))
-	h1After, _ := time.Parse("20060102", p.Get("d"))
+	payMin, _ := strconv.Atoi(p.Get("ps"))
+	payMax, _ := strconv.Atoi(p.Get("pe"))
+	year, _ := strconv.Atoi(p.Get("y"))
+	//h1After, _ := time.Parse("20060102", p.Get("d"))
 
-	filter := domain.SearchCriteria{Radius: radius, Zipcode: zip, Employer: emp, MinimumPay: minPay, H1FiledAfter: h1After, JobTitle: job}
+	filter := domain.SearchCriteria{Radius: radius, Zipcode: zip, Employer: emp, PayMin: payMin, PayMax: payMax, H1Year: year, JobTitle: job}
 	if x > 0 {
 		filter.ExcludeH1Dependent = true
 	}

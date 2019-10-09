@@ -48,14 +48,15 @@ type SearchCriteria struct {
 	Radius             int
 	Zipcode            string
 	Employer           string
-	MinimumPay         int
+	PayMin             int
+	PayMax             int
 	ExcludeH1Dependent bool
-	H1FiledAfter       time.Time
+	H1Year             int
 	JobTitle           string
 }
 
-func (lca Lca) PayMoreThan(pay int) bool {
-	return lca.Pay > pay
+func (lca Lca) PayBetween(min int, max int) bool {
+	return min <= lca.Pay && lca.Pay >= max
 }
 
 func (lca Lca) H1FiledAfter(after time.Time) bool {

@@ -155,19 +155,19 @@ func (lcaRepo LcaRepo) GetEmployerNames(start string) map[string]int {
 //Get lcas
 func (lcaRepo LcaRepo) Get(searchCriteria domain.SearchCriteria) ([]domain.Lca, error) {
 
-	var filterEmployer, filterPay, filterH1Date, excludeH1Dependent, filterJobTitle bool
+	var filterEmployer, filterPay, filterH1Year, excludeH1Dependent, filterJobTitle bool
 	var lcas []domain.Lca
 
 	if len(searchCriteria.Employer) > 0 {
 		filterEmployer = true
 	}
 
-	if searchCriteria.MinimumPay > 0 {
+	if searchCriteria.PayMin > 0 && searchCriteria.PayMax > 0 {
 		filterPay = true
 	}
 
-	if !searchCriteria.H1FiledAfter.IsZero() {
-		filterH1Date = true
+	if searchCriteria.H1Year > 0 {
+		filterH1Year = true
 	}
 
 	if searchCriteria.ExcludeH1Dependent {
@@ -203,8 +203,8 @@ func (lcaRepo LcaRepo) Get(searchCriteria domain.SearchCriteria) ([]domain.Lca, 
 		for _, casenum := range cases {
 			lca := lcaRepo.store.Cases[casenum]
 			if (!filterEmployer || lca.EmployerNamed(searchCriteria.Employer)) &&
-				(!filterPay || lca.PayMoreThan(searchCriteria.MinimumPay)) &&
-				(!filterH1Date || lca.H1FiledAfter(searchCriteria.H1FiledAfter)) &&
+				(!filterPay || lca.PayBetween(searchCriteria.PayMin, searchCriteria.PayMax)) &&
+				(!filterH1Year || lca.Start_date.Year() == searchCriteria.H1Year) &&
 				(!excludeH1Dependent || lca.H1b_dependent == "N") &&
 				(!filterJobTitle || lca.HasJobTitle(searchCriteria.JobTitle)) {
 				lcas = append(lcas, lca)
@@ -220,22 +220,14 @@ func (lcaRepo LcaRepo) Get(searchCriteria domain.SearchCriteria) ([]domain.Lca, 
 	if filterEmployer {
 		for _, casenum := range lcaRepo.store.EmployerCases[searchCriteria.Employer] {
 			lca := lcaRepo.store.Cases[casenum]
-			if (!filterPay || lca.PayMoreThan(searchCriteria.MinimumPay)) &&
-				(!filterH1Date || lca.H1FiledAfter(searchCriteria.H1FiledAfter)) &&
+			if (!filterPay || lca.PayBetween(searchCriteria.PayMin, searchCriteria.PayMax)) &&
+				(!filterH1Year || lca.Start_date.Year() == searchCriteria.H1Year) &&
 				(!excludeH1Dependent || lca.H1b_dependent == "N") &&
 				(!filterJobTitle || lca.HasJobTitle(searchCriteria.JobTitle)) {
 				lcas = append(lcas, lca)
 			}
 		}
 		return lcas, nil
-	}
-
-	if filterPay {
-		panic("not implemented yet")
-	}
-
-	if filterH1Date {
-		panic("not implemented yet")
 	}
 
 	return nil, nil
