@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+  <head>
+      <title>H1b Employer Search</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://use.fontawesome.com/104d5d81ec.js"></script>  
+  </head>
+  <style>
+
+      @media only screen and (min-width: 993px)
+      {
+            .container {
+                width: 75%;
+            }
+      }
+
+      .page-footer {
+        margin-top: 2% !important;
+        color: #fff;
+        background-color: #ee6e73;
+        padding:0;
+      }
+
+     .input-width-14 {
+         width: 14% !important;
+     }
+
+      #job_title {
+            position: relative;
+            top: 8px;
+        }
+
+        .input-width {
+            width: 20%;
+        }
+
+        table {
+            border: solid 1px #aaa !important;
+            /*cursor: pointer;*/
+        }
+
+        thead {
+            background-color: rgb(233, 231, 231);
+        }
+
+        tbody {
+            font-size: 13px;
+        }
+
+        .search-btn {
+            margin-top: 2.5%;
+        }
+
+        .required-field {
+            color: red;
+            font-weight: bold;
+        }
+
+        .hide {
+            display: none;
+        }
+
+        nav {
+            margin-bottom: 2%;
+        }
+
+        nav .nav-wrapper {
+           margin: 0 auto;
+           text-align: center;
+           padding-right: 350px;
+        }
+
+        .facebook-icon {
+            background-color: #3b5998 !important;
+        }
+
+        .twitter-icon {
+            background-color: #00abe3 !important;
+        }
+  </style>
+  
+  <body>
+
+    <nav>
+        <div class="nav-wrapper">
+            <a href="#" class="brand-logo">H1b Employer Search</a>
+            <ul id="nav-mobile" class="right hide-on-med-and-down">
+                <li><a href="index.html">Home</a></li>
+              </ul>
+        </div>
+    </nav>
+    
+    <div class="fixed-action-btn">
+            <a class="btn-floating btn-large red">
+              <i class="large material-icons">share</i>
+            </a>
+            <ul>
+              <li><a class="btn-floating facebook-icon" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=https%3A//medium.com/%40swarnakishore/deploying-angular-cli-project-to-github-pages-db49246598a1"><span class="fa fa-facebook"></span></a></li>
+              <li><a class="btn-floating twitter-icon" target = "_blank" href="https://twitter.com/home?status=Check%20out%20article%20https%3A//medium.com/%40swarnakishore/deploying-angular-cli-project-to-github-pages-db49246598a1%20via%20%40Swarna_Kishoree"><span class="fa fa-twitter"></span></a></li>
+            </ul>
+    </div>
+
+
+    <div class="container">
+        <div class="row">
+            
+            <p>
+                This website allows searching employers who sponsor H1b visas. 
+            </p>
+            <p>
+                    Search criteria could be employer name or zipcode of employer location.
+                
+                    Additional search criteria includes filter by salary range offered for the position, filter by year of filing, filter by job title of the position and option to exclude H1 dependent employers.
+            </p>   
+            <p>
+                    These are the fields that are shown for each LCA: Employer Name, Job Title, Start Date, Salary and Location.
+            </p>
+            <p>
+                    Few ways this website could be used:
+                    <ul class="collection">
+                        <li class="collection-item">Find (non H1 dependent) employers nearby who are sponsoring</li>
+                        <li class="collection-item">See what people nearby are getting paid for similar roles</li>
+                        <li class="collection-item">Research pay at prospective employer</li>
+                    </ul>
+            </p>
+                
+             <p>   
+                All the information displayed here is publicly available LCA data from the US DOL.
+            </p>
+            
+            
+            
+        </div>
+
+        
+
+    <!--footer-->
+    <footer class="page-footer">
+        <div class="footer-copyright">
+                <div class="container">© <span id="current-year"></span> All rights reserved.</div>
+        </div>
+    </footer>
+
+  </body>
+</html>

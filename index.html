@@ -5,6 +5,7 @@
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <script src="https://use.fontawesome.com/104d5d81ec.js"></script>  
@@ -14,7 +15,7 @@
       @media only screen and (min-width: 993px)
       {
             .container {
-                width: 80%;
+                width: 75%;
             }
       }
 
@@ -93,6 +94,9 @@
     <nav>
         <div class="nav-wrapper">
             <a href="#" class="brand-logo">H1b Employer Search</a>
+            <ul id="nav-mobile" class="right hide-on-med-and-down">
+                <li><a href="about.html">About</a></li>
+              </ul>
         </div>
     </nav>
     
@@ -131,22 +135,18 @@
                         <option value="40">40</option>
                         <option value="45">45</option>
                         <option value="50">50</option>
-                        <option value="75">75</option>
-                        <option value="100">100</option>
-                        <option value="150">150</option>
-                        <option value="200">200</option>
                 </select>
                 <label>Miles from</label>
             </div>
             <div id="zip_code_div" class="input-field col s3 input-width-14">
-                <input id="zip_code" value="58102" type="number" class="validate" required="" aria-required="true"  oninput="onZipCodeInput(zip_code.value)">
+                <input id="zip_code" value="05001" type="number" class="validate" required="" aria-required="true"  oninput="onZipCodeInput(zip_code.value)">
                 <label for="zip_code"><span class="required-field">*</span>Zip Code</label>
                 <span class="helper-text" data-error="Please enter zip code"></span>
             </div>
             <div id="excludeH1Dep_div" class="switch col s2">
                 <label>
                     Exclude H1 Dependent
-                    <input type="checkbox" checked id="excludeH1Dependent" onchange="onExcludeH1DepSwitch(excludeH1Dependent.value)">
+                    <input type="checkbox" checked id="excludeH1Dependent">
                     <span class="lever"></span>
                 </label>
             </div>
@@ -254,7 +254,7 @@
 
         var g_filter = {}
         g_filter.employer = ''
-        g_filter.zipcode = '58102'
+        g_filter.zipcode = '05001'
         g_filter.miles = '5'
         g_filter.salary = '' // >100K
         g_filter.jobtitle = ''
@@ -315,7 +315,7 @@
                 var i = (g_pageNumber - 1) * g_pageRows
                 for (; i<l; i++){
                      /* add this to tr tag to make it modal -  onclick="prepareModal('+i+'); return false;" class="modal-trigger" data-target="modal1">*/
-                    tableRowsHtml = tableRowsHtml+ '<tr><td>'+ g_lcaData[i].Employer_name +'</td><td>'
+                    tableRowsHtml = tableRowsHtml+ '<tr><td> <a target="_blank" href= "https://www.google.com/search?q='+g_lcaData[i].Employer_name+'&ibp=htl;jobs">'+ g_lcaData[i].Employer_name +'</a></td><td>'
                         + g_lcaData[i].Job_title + '</td><td>'+ g_lcaData[i].Start_date.split('T')[0]+'</td><td>'
                         +g_lcaData[i].Wage_rate+'</td><td>' +g_lcaData[i].Employer_city+', '+g_lcaData[i].Employer_state+'</td></tr>'
                 }
@@ -406,11 +406,13 @@
                     g_filter.salary.min = salaryRange[0].replace('$', '').replace('K', '') * 1000
                     g_filter.salary.max = salaryRange[1].replace('$', '').replace('K', '') * 1000
                 }
+                g_filter.hideH1Dep = $('#excludeH1Dependent').prop('checked')
+            
                 //get url and hit /lca with r z or e
                 var q = '?'
                 
                 if (g_filter.employer.length>0){
-                    q = q+'e='+g_filter.employer
+                    q = q+'e='+g_filter.employer.toUpperCase()
                 } else if(g_filter.zipcode.length > 0){
                     q = q+'r='+g_filter.miles+'&z='+g_filter.zipcode
                 }
@@ -423,7 +425,8 @@
                 if(g_filter.hideH1Dep){
                     q = q+'&x='+ 1
                 }
-                if(g_filter.year.length > 0){
+
+                if(g_filter.year > 0){
                     q = q+'&y='+ g_filter.year
                 }
 
@@ -487,13 +490,7 @@
             function onJobTitleInput(title) {
                 g_filter.jobtitle = title
             }
-
-            function onExcludeH1DepSwitch(value) {
-                g_filter.hideH1Dep = false
-                
-                if (value == "on"){}
-                    g_filter.hideH1Dep = true;
-            }
+            
             function onYearInput(value){
                 g_filter.year = value;
             }

@@ -41,6 +41,11 @@ type caseDistance struct {
 	dist  int
 }
 
+const (
+	MAX_LCA_RETURNES = 5000,
+	MAX_MILE_RADIUS = 51
+)
+
 var zipcodeMap map[int]*geoCoord
 
 const zipcodemapFileName = "zipcodemap.csv"
@@ -127,7 +132,7 @@ func (lcaRepo LcaRepo) loadStore() {
 				continue
 			}
 			miles := getDistance(geoCoordFrom.lat, geoCoordFrom.long, geoCoordTo.lat, geoCoordTo.long)
-			if miles < 500 {
+			if miles < MAX_MILE_RADIUS {
 				iZipcodeFrom := (zipcodeFrom * 100) + int(miles/5)
 
 				if val, ok := lcaRepo.store.ZipcodesNearBy[iZipcodeFrom]; ok {
@@ -201,6 +206,9 @@ func (lcaRepo LcaRepo) Get(searchCriteria domain.SearchCriteria) ([]domain.Lca, 
 		}
 
 		for _, casenum := range cases {
+			if len(lcas) > MAX_LCA_RETURNES {
+				break
+			}
 			lca := lcaRepo.store.Cases[casenum]
 			if (!filterEmployer || lca.EmployerNamed(searchCriteria.Employer)) &&
 				(!filterPay || lca.PayBetween(searchCriteria.PayMin, searchCriteria.PayMax)) &&
@@ -210,15 +218,13 @@ func (lcaRepo LcaRepo) Get(searchCriteria domain.SearchCriteria) ([]domain.Lca, 
 				lcas = append(lcas, lca)
 			}
 		}
-
-		if len(lcas) > 1000 {
-			return lcas[:1000], nil
-		}
-		return lcas, nil
 	}
 
 	if filterEmployer {
 		for _, casenum := range lcaRepo.store.EmployerCases[searchCriteria.Employer] {
+			if len(lcas) > MAX_LCA_RETURNES {
+				break
+			}
 			lca := lcaRepo.store.Cases[casenum]
 			if (!filterPay || lca.PayBetween(searchCriteria.PayMin, searchCriteria.PayMax)) &&
 				(!filterH1Year || lca.Start_date.Year() == searchCriteria.H1Year) &&
@@ -227,20 +233,23 @@ func (lcaRepo LcaRepo) Get(searchCriteria domain.SearchCriteria) ([]domain.Lca, 
 				lcas = append(lcas, lca)
 			}
 		}
-		return lcas, nil
 	}
 
-	return nil, nil
+	if len(lcas) > MAX_LCA_RETURNES {
+		return lcas[:MAX_LCA_RETURNES], nil
+	}
+
+	return lcas, nil
 }
 
 func (lcaRepo LcaRepo) add(lca domain.Lca) error {
 
 	lcaRepo.store.Cases[lca.Case_number] = lca
 
-	if val, ok := lcaRepo.store.EmployerCases[lca.Employer_name_lower]; ok {
-		lcaRepo.store.EmployerCases[lca.Employer_name_lower] = append(val, lca.Case_number)
+	if val, ok := lcaRepo.store.EmployerCases[lca.Employer_name]; ok {
+		lcaRepo.store.EmployerCases[lca.Employer_name] = append(val, lca.Case_number)
 	} else {
-		lcaRepo.store.EmployerCases[lca.Employer_name_lower] = []string{lca.Case_number}
+		lcaRepo.store.EmployerCases[lca.Employer_name] = []string{lca.Case_number}
 	}
 
 	zipcodeKey, _ := strconv.Atoi(lca.Employer_zip)

@@ -1,10 +1,7 @@
 package main
 
 import (
-	"fmt"
 	_ "net/http/pprof"
-	"os"
-	"path/filepath"
 
 	"github.com/kk3399/empnearme/http"
 	logWriter "github.com/kk3399/empnearme/log"
@@ -14,13 +11,6 @@ import (
 const dbFileName = "data.gob"
 
 func main() {
-
-	ex, err := os.Executable()
-	if err != nil {
-		panic(err)
-	}
-	exPath := filepath.Dir(ex)
-	fmt.Println(exPath)
 
 	logWriter.Init()
 	logger := logWriter.Writer{}

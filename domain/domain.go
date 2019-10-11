@@ -16,7 +16,6 @@ type Lca struct {
 	End_date            time.Time
 	Employer_name       string
 	Employer_address    string
-	Employer_name_lower string
 	Employer_city       string
 	Employer_state      string
 	Employer_zip        string
@@ -56,7 +55,7 @@ type SearchCriteria struct {
 }
 
 func (lca Lca) PayBetween(min int, max int) bool {
-	return min <= lca.Pay && lca.Pay >= max
+	return min <= lca.Pay && lca.Pay <= max
 }
 
 func (lca Lca) H1FiledAfter(after time.Time) bool {
@@ -64,7 +63,7 @@ func (lca Lca) H1FiledAfter(after time.Time) bool {
 }
 
 func (lca Lca) EmployerNamed(employer string) bool {
-	return lca.Employer_name_lower == employer
+	return lca.Employer_name == employer
 }
 
 func (lca Lca) HasJobTitle(jobTile string) bool {

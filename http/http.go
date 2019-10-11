@@ -113,17 +113,16 @@ func (h Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "text/plain")
 		res.WriteHeader(http.StatusOK)
 		fmt.Fprint(res, robotsTXT)
-
+	} else if strings.Contains(head, ".html") || strings.Contains(head, ".ico") {
+		h.StaticHandler.ServeHTTP(res, req, head)
 	} else {
-		h.StaticHandler.ServeHTTP(res, req)
+		http.Error(res, "Not Found", http.StatusNotFound)
 	}
-
-	//http.Error(res, "Not Found", http.StatusNotFound)
 }
 
-func (staticHandler StaticHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+func (staticHandler StaticHandler) ServeHTTP(res http.ResponseWriter, req *http.Request, head string) {
 	//http.ServeFile(res, req, req.URL.Path[1:])
-	http.ServeFile(res, req, "index.html")
+	http.ServeFile(res, req, head)
 }
 
 func (empListHandler EmpListHandler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
