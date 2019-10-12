@@ -117,7 +117,7 @@ func readGob(filePath string, object interface{}) error {
 func (lcaRepo LcaRepo) loadStore() {
 	loadZipCodesIfNeeded()
 
-	for year := time.Now().Year(); year >= 2013; year-- {
+	for year := time.Now().Year(); year >= 2015; year-- {
 		lcaRepo.loadYear(year)
 	}
 

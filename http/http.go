@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	inProd    = false
+	inProd    = true
 	robotsTXT = `User-agent:  *
 				 Disallow:    / 
 				 Allow:	      /about.html`
