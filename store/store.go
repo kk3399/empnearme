@@ -42,8 +42,8 @@ type caseDistance struct {
 }
 
 const (
-	MAX_LCA_RETURNES = 5000,
-	MAX_MILE_RADIUS = 51
+	constLcaResponseCap   = 5000
+	constMaxRadiusInMiles = 51
 )
 
 var zipcodeMap map[int]*geoCoord
@@ -132,7 +132,7 @@ func (lcaRepo LcaRepo) loadStore() {
 				continue
 			}
 			miles := getDistance(geoCoordFrom.lat, geoCoordFrom.long, geoCoordTo.lat, geoCoordTo.long)
-			if miles < MAX_MILE_RADIUS {
+			if miles < constMaxRadiusInMiles {
 				iZipcodeFrom := (zipcodeFrom * 100) + int(miles/5)
 
 				if val, ok := lcaRepo.store.ZipcodesNearBy[iZipcodeFrom]; ok {
@@ -206,7 +206,7 @@ func (lcaRepo LcaRepo) Get(searchCriteria domain.SearchCriteria) ([]domain.Lca, 
 		}
 
 		for _, casenum := range cases {
-			if len(lcas) > MAX_LCA_RETURNES {
+			if len(lcas) > constLcaResponseCap {
 				break
 			}
 			lca := lcaRepo.store.Cases[casenum]
@@ -222,7 +222,7 @@ func (lcaRepo LcaRepo) Get(searchCriteria domain.SearchCriteria) ([]domain.Lca, 
 
 	if filterEmployer {
 		for _, casenum := range lcaRepo.store.EmployerCases[searchCriteria.Employer] {
-			if len(lcas) > MAX_LCA_RETURNES {
+			if len(lcas) > constLcaResponseCap {
 				break
 			}
 			lca := lcaRepo.store.Cases[casenum]
@@ -235,8 +235,8 @@ func (lcaRepo LcaRepo) Get(searchCriteria domain.SearchCriteria) ([]domain.Lca, 
 		}
 	}
 
-	if len(lcas) > MAX_LCA_RETURNES {
-		return lcas[:MAX_LCA_RETURNES], nil
+	if len(lcas) > constLcaResponseCap {
+		return lcas[:constLcaResponseCap], nil
 	}
 
 	return lcas, nil
@@ -353,7 +353,6 @@ func (lcaRepo LcaRepo) loadYear(year int) error {
 			i = i + 1
 
 			lca.Employer_name = strings.TrimSpace(line[i])
-			lca.Employer_name_lower = strings.ToLower(lca.Employer_name)
 			i = i + 1
 			lca.Employer_address = strings.TrimSpace(line[i])
 			i = i + 1

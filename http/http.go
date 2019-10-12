@@ -18,8 +18,9 @@ import (
 
 const (
 	inProd    = false
-	robotsTXT = `User-agent: *
-				 Disallow: / `
+	robotsTXT = `User-agent:  *
+				 Disallow:    / 
+				 Allow:	      /about.html`
 )
 
 var templates = template.Must(template.ParseFiles("templates/list.html", "templates/single.html"))
