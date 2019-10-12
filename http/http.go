@@ -114,7 +114,7 @@ func (h Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "text/plain")
 		res.WriteHeader(http.StatusOK)
 		fmt.Fprint(res, robotsTXT)
-	} else if strings.Contains(head, ".html") || strings.Contains(head, ".ico") {
+	} else if len(head) == 0 || strings.Contains(head, ".html") || strings.Contains(head, ".ico") {
 		h.StaticHandler.ServeHTTP(res, req, head)
 	} else {
 		http.Error(res, "Not Found", http.StatusNotFound)
