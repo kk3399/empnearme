@@ -90,6 +90,11 @@
         .input-filed{
             margin-bottom:0;
         }
+
+        th a {
+            color:#000
+        }
+
         
         /*!
         * Materialize 1.0.0 (http://materializecss.com)
@@ -318,7 +323,7 @@
             }
 
             function showPageData(){
-                var tableRowsHtml = '<thead><tr><th>Employer</th><th>Job</th><th><a href="#!" onclick="changeOrder('+g_dateSortOrder+'); return false;">Date</a></th><th><a href="#!" onclick="changeOrder('+g_salarySortOrder+'); return false;">Salary</a></th><th>Location</th></tr></thead><tbody>'
+                var tableRowsHtml = '<thead><tr><th>Employer</th><th>Job</th><th><a href="#!" onclick="changeOrder('+g_dateSortOrder+'); return false;"><u>Date</u></a></th><th><a href="#!" onclick="changeOrder('+g_salarySortOrder+'); return false;"><u>Salary</u></a></th><th>Location</th></tr></thead><tbody>'
                 var l = g_lcaData.length
                 if (l > g_pageRows * g_pageNumber) {
                     l = g_pageRows * g_pageNumber;
@@ -405,6 +410,9 @@
             function onSubmit() {
                 g_pageNumber = 1
                 g_lcaData = []
+                g_dateSortOrder = 0
+                g_salarySortOrder = -2
+
 
                 $('#table-list').html('')
                 $('#paginator').html('')
