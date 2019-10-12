@@ -60,6 +60,7 @@ func Serve(handler Handler) error {
 
 		srv = makeHTTPServer()
 		srv.Addr = ":443"
+		srv.Handler = handler
 		srv.TLSConfig = &tls.Config{
 			GetCertificate: m.GetCertificate,
 		}
@@ -77,8 +78,8 @@ func Serve(handler Handler) error {
 		srv.Handler = m.HTTPHandler(srv.Handler)
 	}
 
-	srv.Addr = ":8080"
-	srv.Handler = handler
+	srv.Addr = ":80"
+	//srv.Handler = handler
 
 	//http.Handle("/lca", handler.LcaHandler)
 	//http.Handle("/", http.FileServer(http.Dir("./static")))
