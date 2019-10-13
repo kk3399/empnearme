@@ -217,7 +217,19 @@
                 <label for="job_title">Job Title</label>
             </div>
         </div>
-
+        <div class="row" style="padding-left:35%;">
+                <div id="spinner" class="preloader-wrapper">
+                        <div class="spinner-layer">
+                          <div class="circle-clipper left">
+                            <div class="circle"></div>
+                          </div><div class="gap-patch">
+                            <div class="circle"></div>
+                          </div><div class="circle-clipper right">
+                            <div class="circle"></div>
+                          </div>
+                        </div>
+                      </div>
+        </div>
         
         <table id='table-list' class="responsive-table highlight">
             <thead>
@@ -461,15 +473,21 @@
                     q = q+'&ps='+ g_filter.salary.min + '&pe='+g_filter.salary.max
                 }
 
-
+                $('#spinner').removeClass('hide').addClass('active');
                 $.get( "/lca"+q, function(d) {
                     if (!d || d.length == 0)
                      return;
 
-                     g_lcaData = d;
-                     changeOrder(2);
-                     g_pageNumber = 1
+                    g_lcaData = d;
+                    changeOrder(2);
+                    g_pageNumber = 1
                     showData()
+                })
+                .fail(function(e){
+                    console.log(e)
+                })
+                .always(function() {
+                    $('#spinner').removeClass('active').addClass('hide');
                 });
             }
 
