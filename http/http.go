@@ -60,6 +60,7 @@ func Serve(handler Handler) error {
 
 		srv = makeHTTPServer()
 		srv.Addr = ":443"
+		srv.Handler = handler
 		srv.TLSConfig = &tls.Config{
 			GetCertificate: m.GetCertificate,
 		}
@@ -78,7 +79,6 @@ func Serve(handler Handler) error {
 	}
 
 	srv.Addr = ":80"
-	srv.Handler = handler
 
 	//http.Handle("/lca", handler.LcaHandler)
 	//http.Handle("/", http.FileServer(http.Dir("./static")))
@@ -115,6 +115,9 @@ func (h Handler) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 		res.WriteHeader(http.StatusOK)
 		fmt.Fprint(res, robotsTXT)
 	} else if len(head) == 0 || strings.Contains(head, ".html") || strings.Contains(head, ".ico") {
+		if len(head) == 0 {
+			head = "index.html"
+		}
 		h.StaticHandler.ServeHTTP(res, req, head)
 	} else {
 		http.Error(res, "Not Found", http.StatusNotFound)
