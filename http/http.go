@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	inProd    = true
+	inProd    = false
 	robotsTXT = `User-agent:  *
 				 Disallow:    / 
 				 Allow:	      /about.html`
@@ -60,7 +60,6 @@ func Serve(handler Handler) error {
 
 		srv = makeHTTPServer()
 		srv.Addr = ":443"
-		srv.Handler = handler
 		srv.TLSConfig = &tls.Config{
 			GetCertificate: m.GetCertificate,
 		}
@@ -79,6 +78,7 @@ func Serve(handler Handler) error {
 	}
 
 	srv.Addr = ":80"
+	srv.Handler = handler
 
 	//http.Handle("/lca", handler.LcaHandler)
 	//http.Handle("/", http.FileServer(http.Dir("./static")))
@@ -146,7 +146,7 @@ func (lcaHandler LcaHandler) ServeHTTP(res http.ResponseWriter, req *http.Reques
 	job := p.Get("j")
 	x, _ := strconv.Atoi(p.Get("x"))
 	radius, _ := strconv.Atoi(p.Get("r"))
-	emp := strings.ToLower(p.Get("e"))
+	emp := strings.ToUpper(p.Get("e"))
 	payMin, _ := strconv.Atoi(p.Get("ps"))
 	payMax, _ := strconv.Atoi(p.Get("pe"))
 	year, _ := strconv.Atoi(p.Get("y"))

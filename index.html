@@ -525,7 +525,7 @@
                 var employerElement = $('#employer_name');
                 var emp = employerElement.val();
                 if(emp.length >= 0){
-                    $.get( "/emps?has="+emp, function(d) {
+                    $.get( "/emps?has="+emp.toUpperCase(), function(d) {
                         employerElement.autocomplete({data:d});
                         employerElement.click();
                     });
