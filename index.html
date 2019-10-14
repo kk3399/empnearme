@@ -29,16 +29,23 @@
             }
       }
 
+      @media (max-width: 500px) { 
+        nav .brand-logo {
+            font-size: 18px;
+        }
+      }
+
+      @media (min-width: 1280px) { 
+        .input-width-14 {
+         width: 14% !important;
+        }  
+      }
       .page-footer {
         margin-top: 2% !important;
         color: #fff;
         background-color: #ee6e73;
         padding:0;
       }
-
-     .input-width-14 {
-         width: 14% !important;
-     }
 
       #job_title {
             position: relative;
@@ -116,12 +123,18 @@
 
     <nav>
         <div class="nav-wrapper">
-            <a href="#" class="brand-logo">H1b Employer Search</a>
-            <ul id="nav-mobile" class="right hide-on-med-and-down">
+            <a href="index.html" class="brand-logo">H1b Employer Search</a>
+            <a href="#" data-target="mobile-demo" class="sidenav-trigger"><i class="material-icons">menu</i></a>
+            <ul class="right hide-on-med-and-down">
                 <li><a href="about.html">About</a></li>
-              </ul>
+            </ul>
         </div>
     </nav>
+
+    <ul class="sidenav" id="mobile-demo">
+        <li><a href="about.html">About</a></li>
+    </ul>
+                
     
     <div class="fixed-action-btn">
             <a class="btn-floating btn-large red">
@@ -136,14 +149,14 @@
 
     <div class="container">
         <div class="row">
-            <div class="input-field col s3 input-width-14">
+            <div class="input-field col l3 m3 s12 input-width-14">
                 <select onchange="onSearcByCriteriaChange(value)"> 
                     <option value="Location">Location</option>
                     <option value="Employer">Employer</option>
                 </select>
                 <label>Search By</label>
             </div>
-            <div id="miles_from_div" class="input-field col s3 input-width-14">
+            <div id="miles_from_div" class="input-field col l3 m3 s12 input-width-14">
                 <!-- <input id="miles_from" type="text" class="validate"  required="" aria-required="true" oninput="onMilesFromInput(miles_from.value)">
                 <label for="miles_from"><span class="required-field">*</span>Miles From</label>
                 <span class="helper-text" data-error="Please enter miles"></span> -->
@@ -161,28 +174,22 @@
                 </select>
                 <label>Miles from</label>
             </div>
-            <div id="zip_code_div" class="input-field col s3 input-width-14">
+            <div id="zip_code_div" class="input-field col l3 m3 s12 input-width-14">
                 <input id="zip_code" value="05001" type="text" class="validate" required="" aria-required="true"  oninput="onZipCodeInput(zip_code.value)">
                 <label for="zip_code"><span class="required-field">*</span>Zip Code</label>
                 <!-- <span class="helper-text" data-error="Please enter zip code"></span> -->
             </div>
-            <div id="excludeH1Dep_div" class="switch col s2">
+            <div id="excludeH1Dep_div" class="switch col l2 m2 s12 ">
                 <label>
                     Exclude H1 Dependent
                     <input type="checkbox" checked id="excludeH1Dependent">
                     <span class="lever"></span>
                 </label>
             </div>
-            <div id="employer_div" class="input-field col s3 hide input-width">
+            <div id="employer_div" class="input-field col l3 m3 s12 hide input-width">
                 <input id="employer_name" type="text" class="validate autocomplete" required="" aria-required="true" oninput="onEmployerInput(employer_name.value)">
                 <label for="employer_name"><span class="required-field">*</span>Enter Employer Name</label>
                 <!-- <span class="helper-text" data-error="Please enter employer name"></span> -->
-            </div>
-
-            <div class=" center-align search-btn col s3">
-                <button class="btn waves-effect waves-light" type="submit" name="action" onclick="onSubmit()">Search
-                    <i class="material-icons right">send</i>
-                </button>
             </div>
         </div>
 
@@ -205,16 +212,22 @@
                 <label>Year</label>
             </div>
             
-            <div class="col s3">
+            <div class="col l3 m3 s12">
                 <form action="#">
                     <label>Salary (in K)</label>
                     <div id="salary"></div>
                 </form>
             </div>
             
-            <div class="input-field col s2">
+            <div class="input-field col l2 m2 s12">
                 <input id="job_title" type="text" class="validate" oninput="onJobTitleInput(job_title.value)">
                 <label for="job_title">Job Title</label>
+            </div>
+
+            <div class=" center-align search-btn col l3 m3 s12">
+                    <button class="btn waves-effect waves-light" type="submit" name="action" onclick="onSubmit()">Search
+                        <i class="material-icons right">send</i>
+                    </button>
             </div>
         </div>
         <div class="row" style="padding-left:35%;">
@@ -303,6 +316,7 @@
         $(document).ready(function(){
                 $('select').formSelect();
                 $('.modal').modal();
+                $('.sidenav').sidenav();
                 $('.fixed-action-btn').floatingActionButton();
                 document.getElementById("current-year").innerHTML = new Date().getFullYear();
                 var slider = document.getElementById('salary');

@@ -56,18 +56,29 @@
         .twitter-icon {
             background-color: #00abe3 !important;
         }
+
+      @media (max-width: 500px) { 
+        nav .brand-logo {
+            font-size: 18px;
+        }
+      }
   </style>
   
   <body>
 
     <nav>
         <div class="nav-wrapper">
-            <a href="#" class="brand-logo">H1b Employer Search</a>
+            <a href="index.html" class="brand-logo">H1b Employer Search</a>
+            <a href="#" data-target="mobile-demo" class="sidenav-trigger"><i class="material-icons">menu</i></a>
             <ul id="nav-mobile" class="right hide-on-med-and-down">
                 <li><a href="index.html">Home</a></li>
               </ul>
         </div>
     </nav>
+
+    <ul class="sidenav" id="mobile-demo">
+        <li><a href="index.html">Home</a></li>
+    </ul>
     
     <div class="fixed-action-btn">
             <a class="btn-floating btn-large red">
@@ -122,4 +133,12 @@
     </footer>
 
   </body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    
+  <script>
+      $(document).ready(function(){
+                $('.sidenav').sidenav();
+      });
+  </script>
 </html>
