@@ -76,9 +76,12 @@ func Serve(handler Handler) error {
 
 	if m != nil {
 		srv.Handler = m.HTTPHandler(srv.Handler)
+		srv.Addr = ":80"
+	} else {
+		srv.Handler = handler
+		srv.Addr = ":8080"
 	}
 
-	srv.Addr = ":80"
 	//srv.Handler = handler
 
 	//http.Handle("/lca", handler.LcaHandler)
